@@ -38,7 +38,7 @@ BOT_TAG = "[readme-bot]"
 
 # Architecture cible (cahier des charges, §19).
 ARCHITECTURE = [
-    ("app", "Point d'entrée de l'application Streamlit"),
+    ("app", "Paquet de l'application (point d'entrée : streamlit_app.py)"),
     ("pages", "Pages et tableaux de bord Streamlit"),
     ("domain", "Règles métier : PRU, valorisation, plus-values, devises"),
     ("services", "Orchestration : actualisation, sauvegarde, archivage"),

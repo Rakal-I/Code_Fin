@@ -7,9 +7,9 @@ import math
 import sys
 from pathlib import Path
 
-from fontTools.ttLib import TTFont
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
+from fontTools.ttLib import TTFont
 
 OUT = Path(__file__).resolve().parent.parent / "assets"
 FONT = sys.argv[1] if len(sys.argv) > 1 else "/usr/share/fonts/opentype/inter/InterDisplay-Light.otf"

@@ -1,0 +1,9 @@
+# Dépendances de l'application (Python 3.11 ou plus récent).
+streamlit>=1.66
+sqlalchemy>=2.0
+alembic>=1.13
+pandas>=2.2
+pydantic>=2.7
+plotly>=5.22
+yfinance>=0.2.50
+requests>=2.32

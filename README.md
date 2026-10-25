@@ -48,13 +48,13 @@ Calculé à partir des cases cochées dans [`docs/ROADMAP.md`](docs/ROADMAP.md).
 <!-- AUTO:PROGRESS:START -->
 | Étape | Avancement | Fait |
 |---|---|---|
-| Version 1 — MVP | `░░░░░░░░░░` 0 % | 0/17 |
-| Critères de recette | `░░░░░░░░░░` 0 % | 0/13 |
+| Version 1 — MVP | `██████████` 100 % | 17/17 |
+| Critères de recette | `██████████` 100 % | 13/13 |
 | Version 2 — Nouveaux actifs | `░░░░░░░░░░` 0 % | 0/3 |
 | Version 3 — Imports | `░░░░░░░░░░` 0 % | 0/2 |
 | Version 4 — Mobilité | `░░░░░░░░░░` 0 % | 0/3 |
 | Version 5 — Assistant | `░░░░░░░░░░` 0 % | 0/2 |
-| **Total** | `░░░░░░░░░░` 0 % | **0/40** |
+| **Total** | `████████░░` 75 % | **30/40** |
 <!-- AUTO:PROGRESS:END -->
 
 ---
@@ -132,6 +132,19 @@ Pour chacune : nom, établissement, contrat, devise de référence, commentaire.
 - **Performances** : aucune extrapolation ni estimation. Si l'historique ne
   suffit pas, la valeur affichée est `N/A`.
 
+Conventions retenues là où le cahier des charges laisse le choix :
+
+- **Frais d'achat** : inclus dans le PRU. Les frais de vente diminuent la plus-value réalisée.
+- **Taux de change** : `1 EUR = x devise` (montant en EUR = montant / taux). Pour un achat,
+  le taux saisi est prioritaire ; à défaut, le taux connu du jour (ou des 7 jours précédents) ;
+  sinon le montant en EUR est indiqué indisponible.
+- **Effet de change** : effet de marché = plus-value en devise convertie au taux moyen d'achat ;
+  effet de change = plus-value en EUR − effet de marché.
+- **Correction** : ajuste la quantité au PRU courant et/ou redéfinit le PRU de la ligne.
+- **Vente supérieure au stock** : refusée à la saisie, avec un message explicite.
+- **Totaux consolidés** : une ligne sans cours ou sans taux de change est exclue des totaux
+  et signalée, jamais comptée pour zéro.
+
 ---
 
 ## 🔎 Qualité des données
@@ -161,15 +174,18 @@ libellé du statut est toujours affiché.
 
 ## 🏗️ Stack technique et architecture
 
-**Technologies :** Python · Streamlit · SQLite · SQLAlchemy · Alembic ·
-Pandas · Pydantic · Plotly.
+**Technologies :** Python 3.11+ · Streamlit · SQLite · SQLAlchemy · Alembic ·
+Pandas · Pydantic · Plotly · yfinance.
+
+Le point d'entrée est [`streamlit_app.py`](streamlit_app.py), à la racine. Les dossiers de
+l'architecture cible sont regroupés dans le paquet `app/` ; `tests/` et `migrations/` sont à la racine.
 
 État de l'architecture cible (§19 du cahier des charges), recalculé à chaque push :
 
 <!-- AUTO:ARCHITECTURE:START -->
 | Dossier | Rôle | État | Fichiers Python |
 |---|---|---|---|
-| `app/` | Point d'entrée de l'application Streamlit | ⬜ À créer | — |
+| `app/` | Paquet de l'application (point d'entrée : streamlit_app.py) | ⬜ À créer | — |
 | `pages/` | Pages et tableaux de bord Streamlit | ⬜ À créer | — |
 | `domain/` | Règles métier : PRU, valorisation, plus-values, devises | ⬜ À créer | — |
 | `services/` | Orchestration : actualisation, sauvegarde, archivage | ⬜ À créer | — |
@@ -185,17 +201,48 @@ Pandas · Pydantic · Plotly.
 
 ## 🚀 Installation
 
-> Ces commandes fonctionneront une fois l'application initialisée
-> (première étape de la [feuille de route](docs/ROADMAP.md)).
-
 ```bash
 git clone https://github.com/Rakal-I/Code_Fin.git
 cd Code_Fin
 python -m venv .venv
 source .venv/bin/activate        # Windows : .venv\Scripts\activate
 pip install -r requirements.txt
-alembic upgrade head             # crée ou met à jour la base SQLite locale
-streamlit run app/main.py
+streamlit run streamlit_app.py
+```
+
+L'application s'ouvre sur http://localhost:8501. Au premier lancement, elle crée la base
+`data/ancora.db` (migrations Alembic appliquées automatiquement) et ajoute les indices de
+référence (CAC 40, Euro Stoxx 50, S&P 500, Nasdaq, MSCI World, MSCI EM).
+
+**Premiers pas**
+
+1. *Administration › Enveloppes* : créez vos enveloppes (PEA, assurance-vie, CTO…).
+2. *Administration › Instruments* : ajoutez vos instruments. Pour Yahoo Finance, le
+   « symbole fournisseur » porte le suffixe de la place (`MC.PA` pour Paris, `ASML.AS`
+   pour Amsterdam ; rien pour les actions américaines).
+3. *Saisie › Position initiale* : reprenez vos positions existantes (quantité, PRU, date de reprise).
+4. **Actualiser tout** (barre latérale) : cours, historiques, fondamentaux et taux de change.
+5. *Saisie › Opération* : enregistrez ensuite vos achats, ventes, dividendes, apports…
+
+**Essayer avec des données fictives** (base séparée, cours réels) :
+
+```bash
+python scripts/demo_data.py data/demo.db
+ANCORA_DB_PATH=data/demo.db streamlit run streamlit_app.py
+```
+
+**Sources optionnelles** : copiez [`config/secrets.example.toml`](config/secrets.example.toml) en
+`config/secrets.toml` (jamais versionné) pour activer Finnhub et SEC EDGAR.
+
+**Variables d'environnement** : `ANCORA_DB_PATH`, `ANCORA_BACKUP_DIR`, `ANCORA_LOG_DIR`,
+`FINNHUB_API_KEY`, `SEC_USER_AGENT`.
+
+**Tests** (aucun appel réseau : un fournisseur simulé est utilisé) :
+
+```bash
+pip install -r requirements-dev.txt
+ruff check .
+pytest            # dont tests/test_recette.py : les 13 critères de recette
 ```
 
 ---
@@ -230,11 +277,11 @@ Code_Fin/
 <!-- AUTO:STATS:START -->
 | Langage | Fichiers | Lignes (hors vides) |
 |---|---|---|
-| Autres | 4 | 25 |
-| Markdown | 3 | 670 |
+| Autres | 4 | 29 |
+| Markdown | 3 | 715 |
 | Python | 2 | 411 |
 | YAML | 1 | 43 |
-| **Total** | **10** | **1149** |
+| **Total** | **10** | **1198** |
 
 **Tests automatisés détectés :** 0
 
@@ -283,6 +330,17 @@ Certaines données ne sont pas garanties gratuitement pour tous les marchés :
 consensus des analystes, objectifs de cours, nombre d'analystes, dividendes
 futurs, estimations de BNA. Quand elles manquent, l'application affiche
 **« Non disponible »**.
+
+Constats lors des essais :
+
+- **Dividende N+1** et **nombre d'analystes sur le dividende** : aucune source gratuite
+  configurée ne les fournit ; ils s'affichent « Non disponible » (saisie manuelle possible).
+- **Dividende N** : taux annuel prévisionnel publié par Yahoo (`dividendRate`), marqué « Estimée ».
+- **MSCI Emerging Markets** : Yahoo ne fournit que le dernier cours, pas d'historique :
+  les performances de cet indice restent N/A.
+- **Finnhub** : selon l'abonnement, les objectifs de cours peuvent être réservés à l'offre
+  payante ; un accès refusé est tracé comme erreur et Yahoo reste la source utilisée.
+- **SEC EDGAR** : BNA dilués des rapports annuels 10-K, sociétés américaines uniquement.
 
 ---
 

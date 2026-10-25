@@ -1,0 +1,21 @@
+[project]
+name = "ancora"
+version = "1.0.0"
+description = "Application personnelle de suivi patrimonial et financier."
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    # Avertissements internes des bibliothèques (yfinance, pandas 3), sans effet sur Ancora.
+    "ignore::DeprecationWarning",
+    "ignore::FutureWarning",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
