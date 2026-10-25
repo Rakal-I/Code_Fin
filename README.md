@@ -1,13 +1,13 @@
 <h1 align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
-    <img src="assets/logo.svg" alt="Vigie — suivi patrimonial et financier" height="72">
+    <img src="assets/logo.svg" alt="Ancora — suivi patrimonial et financier" height="72">
   </picture>
 </h1>
 
-<p align="center"><em>Garder un œil sur tout son patrimoine, sans jamais inventer une donnée.</em></p>
+<p align="center"><em>Un point d'ancrage pour tout son patrimoine, sans jamais inventer une donnée.</em></p>
 
-**Vigie** est une application **personnelle** pour suivre, regrouper, analyser et valoriser
+**Ancora** est une application **personnelle** pour suivre, regrouper, analyser et valoriser
 un patrimoine financier réparti entre plusieurs enveloppes
 (PEA, assurance-vie, PER, CTO…) et plusieurs types d'actifs
 (actions, ETF, OPCVM / SICAV / FCP, unités de compte, indices).
@@ -326,14 +326,14 @@ README, puis ajoutez la fonction correspondante dans `render()` du script.
 
 ## 🎨 Identité visuelle
 
-Le nom **Vigie** désigne le poste d'observation d'un navire : l'application
-observe et signale (cours, fraîcheur des données, alertes de qualité), mais ne
-donne jamais de conseil.
+**Ancora** signifie « ancre » en italien et en portugais, et se prononce de la
+même façon dans la plupart des langues. Le nom porte l'idée d'un point
+d'ancrage : une source unique et stable de référence pour tout le patrimoine,
+qui tient bon quand les marchés bougent.
 
 Le style est **moderne et minimaliste**, dans l'esprit des icônes Apple. L'icône
-a des coins continus (superellipse) sur un fond graphite. Un seul trait blanc
-dessine à la fois un **V** et une courbe de cours qui remonte, et le point vert
-marque le cours actuel.
+a des coins continus (superellipse) sur un fond graphite, avec une ancre
+dessinée d'un seul trait blanc. Son anneau vert est la seule touche de couleur.
 
 | Fichier | Usage |
 |---|---|
@@ -350,13 +350,6 @@ marque le cours actuel.
 
 Les SVG sont produits par [`scripts/generate_logo.py`](scripts/generate_logo.py)
 (nécessite `pip install fonttools` et la police Inter Display).
-
----|---|
-| [`assets/logo.svg`](assets/logo.svg) | Logo complet, fond clair |
-| [`assets/logo-dark.svg`](assets/logo-dark.svg) | Logo complet, fond sombre |
-| [`assets/icon.svg`](assets/icon.svg) | Icône seule (favicon Streamlit, avatar) |
-
-Couleurs : bleu nuit `#0E2A47` → bleu canard `#14707A` (dégradé), or `#F5B83D` (accent).
 
 ---
 

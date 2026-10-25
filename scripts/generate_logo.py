@@ -1,4 +1,4 @@
-"""Génère le logo de Vigie (assets/logo.svg, logo-dark.svg, icon.svg).
+"""Génère le logo d'Ancora (assets/logo.svg, logo-dark.svg, icon.svg).
 
 Usage : python scripts/generate_logo.py [chemin/vers/InterDisplay-SemiBold.otf]
 Prérequis : pip install fonttools
@@ -13,6 +13,7 @@ from fontTools.pens.transformPen import TransformPen
 
 OUT = str(Path(__file__).resolve().parent.parent / "assets") + "/"
 FONT = sys.argv[1] if len(sys.argv) > 1 else "/usr/share/fonts/opentype/inter/InterDisplay-SemiBold.otf"
+NAME = "Ancora"
 GREEN = "#30D158"
 
 def squircle(x, y, size, n=5.0, steps=160):
@@ -38,8 +39,12 @@ def icon(x, y, size, uid):
   </defs>
   <path d="{squircle(x, y, size)}" fill="url(#{uid})"/>
   <path d="{squircle(x + 0.5 * k, y + 0.5 * k, size - k)}" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="{k:.2f}"/>
-  <path d="M{P(26, 43)} L{P(43, 68)} L{P(71, 32)}" fill="none" stroke="#FFFFFF" stroke-width="{7 * k:.2f}" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="{x + 71 * k:.2f}" cy="{y + 32 * k:.2f}" r="{6 * k:.2f}" fill="{GREEN}"/>'''
+  <g fill="none" stroke="#FFFFFF" stroke-width="{6 * k:.2f}" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M{P(50, 36)} L{P(50, 77)}"/>
+    <path d="M{P(38, 45)} L{P(62, 45)}"/>
+    <path d="M{P(27, 58)} C{P(28, 71)} {P(38, 77)} {P(50, 77)} C{P(62, 77)} {P(72, 71)} {P(73, 58)}"/>
+  </g>
+  <circle cx="{x + 50 * k:.2f}" cy="{y + 26 * k:.2f}" r="{7 * k:.2f}" fill="none" stroke="{GREEN}" stroke-width="{6 * k:.2f}"/>'''
 
 def wordmark(text, x, baseline, size, tracking_em, color):
     font = TTFont(FONT)
@@ -58,11 +63,11 @@ def wordmark(text, x, baseline, size, tracking_em, color):
 def logo(color, name):
     H, ICON = 96, 80
     size = 50
-    _, _, cap = wordmark("Vigie", 0, 0, size, -0.02, color)
+    _, _, cap = wordmark(NAME, 0, 0, size, -0.02, color)
     baseline = H / 2 + cap / 2            # hauteur de capitale centrée sur l'icône
-    word, width, _ = wordmark("Vigie", ICON + 22, baseline, size, -0.02, color)
+    word, width, _ = wordmark(NAME, ICON + 22, baseline, size, -0.02, color)
     W = round(ICON + 22 + width + 8)
-    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" role="img" aria-label="Vigie">
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" role="img" aria-label="{NAME}">
   {icon(0, (H - ICON) / 2, ICON, "g")}
   {word}
 </svg>
@@ -71,7 +76,7 @@ def logo(color, name):
 
 logo("#1D1D1F", "logo.svg")
 logo("#F5F5F7", "logo-dark.svg")
-open(OUT + "icon.svg", "w").write(f'''<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" role="img" aria-label="Vigie">
+open(OUT + "icon.svg", "w").write(f'''<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" role="img" aria-label="{NAME}">
   {icon(0, 0, 100, "g")}
 </svg>
 ''')
