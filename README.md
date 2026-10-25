@@ -17,7 +17,7 @@ un patrimoine financier réparti entre plusieurs enveloppes
 > ou de vente.
 
 <!-- AUTO:META:START -->
-> 🔄 **Dernière mise à jour :** 26/10/2026 00:11 (heure de Paris) · commit `3ec2ab1` · 6 commits au total
+> 🔄 **Dernière mise à jour :** 26/10/2026 00:16 (heure de Paris) · commit `e3439a9` · 7 commits au total
 <!-- AUTO:META:END -->
 
 ---
@@ -230,11 +230,11 @@ Code_Fin/
 <!-- AUTO:STATS:START -->
 | Langage | Fichiers | Lignes (hors vides) |
 |---|---|---|
-| Autres | 4 | 57 |
-| Markdown | 3 | 671 |
-| Python | 2 | 417 |
+| Autres | 4 | 25 |
+| Markdown | 3 | 670 |
+| Python | 2 | 411 |
 | YAML | 1 | 43 |
-| **Total** | **10** | **1188** |
+| **Total** | **10** | **1149** |
 
 **Tests automatisés détectés :** 0
 
@@ -259,6 +259,7 @@ Code_Fin/
 <!-- AUTO:COMMITS:START -->
 | Commit | Date | Auteur | Message |
 |---|---|---|---|
+| `e3439a9` | 26/10/2026 | Claude | Nouvelle identité Ancora : anneau de répartition en noir et blanc |
 | `3ec2ab1` | 26/10/2026 | Claude | Remplace l'ancre par un logo abstrait « sommet » |
 | `37b926f` | 26/10/2026 | Claude | Renomme l'application en « Ancora » avec un logo en forme d'ancre |
 | `0a47799` | 26/10/2026 | Claude | Refait le logo Vigie dans un style minimaliste façon Apple |
