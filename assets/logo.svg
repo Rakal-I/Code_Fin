@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="96" viewBox="0 0 400 96" role="img" aria-label="Vigie — suivi patrimonial et financier">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E2A47"/>
+      <stop offset="1" stop-color="#14707A"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="80" height="80" rx="20" fill="url(#bg)"/>
+  <polyline points="25,38 44,68 67,32" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="67" cy="32" r="11" fill="none" stroke="#F5B83D" stroke-width="2" opacity="0.45"/>
+  <circle cx="67" cy="32" r="6" fill="#F5B83D"/>
+  <text x="108" y="56" font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="46" font-weight="700" letter-spacing="1" fill="#0E2A47">Vigie</text>
+  <text x="110" y="80" font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" letter-spacing="0.6" fill="#5B6B7D">Suivi patrimonial &amp; financier</text>
+</svg>

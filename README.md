@@ -1,6 +1,13 @@
-# 💼 Code_Fin — Suivi patrimonial et financier
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
+    <img src="assets/logo.svg" alt="Vigie — suivi patrimonial et financier" width="400">
+  </picture>
+</h1>
 
-Application **personnelle** pour suivre, regrouper, analyser et valoriser
+<p align="center"><em>Garder un œil sur tout son patrimoine, sans jamais inventer une donnée.</em></p>
+
+**Vigie** est une application **personnelle** pour suivre, regrouper, analyser et valoriser
 un patrimoine financier réparti entre plusieurs enveloppes
 (PEA, assurance-vie, PER, CTO…) et plusieurs types d'actifs
 (actions, ETF, OPCVM / SICAV / FCP, unités de compte, indices).
@@ -29,7 +36,8 @@ un patrimoine financier réparti entre plusieurs enveloppes
 10. [Sources de données et limitations](#-sources-de-données-et-limitations)
 11. [Sécurité et confidentialité](#-sécurité-et-confidentialité)
 12. [Mise à jour automatique de ce README](#-mise-à-jour-automatique-de-ce-readme)
-13. [Documentation](#-documentation)
+13. [Identité visuelle](#-identité-visuelle)
+14. [Documentation](#-documentation)
 
 ---
 
@@ -306,6 +314,23 @@ python scripts/update_readme.py --check  # vérifie seulement (code retour 1 si 
 
 Pour ajouter une section automatique : placez une paire de marqueurs dans le
 README, puis ajoutez la fonction correspondante dans `render()` du script.
+
+---
+
+## 🎨 Identité visuelle
+
+Le nom **Vigie** désigne le poste d'observation d'un navire : l'application
+observe et signale (cours, fraîcheur des données, alertes de qualité), mais ne
+donne jamais de conseil. Dans le logo, une courbe de cours forme un **V**, et
+le point doré marque le cours actuel.
+
+| Fichier | Usage |
+|---|---|
+| [`assets/logo.svg`](assets/logo.svg) | Logo complet, fond clair |
+| [`assets/logo-dark.svg`](assets/logo-dark.svg) | Logo complet, fond sombre |
+| [`assets/icon.svg`](assets/icon.svg) | Icône seule (favicon Streamlit, avatar) |
+
+Couleurs : bleu nuit `#0E2A47` → bleu canard `#14707A` (dégradé), or `#F5B83D` (accent).
 
 ---
 
