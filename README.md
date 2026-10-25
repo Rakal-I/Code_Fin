@@ -10,6 +10,7 @@ un patrimoine financier réparti entre plusieurs enveloppes
 > ou de vente.
 
 <!-- AUTO:META:START -->
+> 🔄 **Dernière mise à jour :** 26/10/2026 00:00 (heure de Paris) · commit `af4a092` · 1 commit au total
 <!-- AUTO:META:END -->
 
 ---
@@ -37,6 +38,15 @@ un patrimoine financier réparti entre plusieurs enveloppes
 Calculé à partir des cases cochées dans [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 <!-- AUTO:PROGRESS:START -->
+| Étape | Avancement | Fait |
+|---|---|---|
+| Version 1 — MVP | `░░░░░░░░░░` 0 % | 0/17 |
+| Critères de recette | `░░░░░░░░░░` 0 % | 0/13 |
+| Version 2 — Nouveaux actifs | `░░░░░░░░░░` 0 % | 0/3 |
+| Version 3 — Imports | `░░░░░░░░░░` 0 % | 0/2 |
+| Version 4 — Mobilité | `░░░░░░░░░░` 0 % | 0/3 |
+| Version 5 — Assistant | `░░░░░░░░░░` 0 % | 0/2 |
+| **Total** | `░░░░░░░░░░` 0 % | **0/40** |
 <!-- AUTO:PROGRESS:END -->
 
 ---
@@ -149,6 +159,18 @@ Pandas · Pydantic · Plotly.
 État de l'architecture cible (§19 du cahier des charges), recalculé à chaque push :
 
 <!-- AUTO:ARCHITECTURE:START -->
+| Dossier | Rôle | État | Fichiers Python |
+|---|---|---|---|
+| `app/` | Point d'entrée de l'application Streamlit | ⬜ À créer | — |
+| `pages/` | Pages et tableaux de bord Streamlit | ⬜ À créer | — |
+| `domain/` | Règles métier : PRU, valorisation, plus-values, devises | ⬜ À créer | — |
+| `services/` | Orchestration : actualisation, sauvegarde, archivage | ⬜ À créer | — |
+| `connectors/` | Fournisseurs de données : yfinance, Finnhub, SEC EDGAR, saisie manuelle | ⬜ À créer | — |
+| `models/` | Modèles SQLAlchemy et schémas Pydantic | ⬜ À créer | — |
+| `database/` | Accès SQLite et gestion des sessions | ⬜ À créer | — |
+| `config/` | Paramètres de l'application (clés API hors dépôt) | ⬜ À créer | — |
+| `tests/` | Tests automatisés | ⬜ À créer | — |
+| `migrations/` | Migrations de schéma Alembic | ⬜ À créer | — |
 <!-- AUTO:ARCHITECTURE:END -->
 
 ---
@@ -173,6 +195,19 @@ streamlit run app/main.py
 ## 🗂️ Structure du dépôt
 
 <!-- AUTO:STRUCTURE:START -->
+```text
+Code_Fin/
+├── .github/
+│   └── workflows/
+│       └── update-readme.yml
+├── docs/
+│   ├── cahier_des_charges.md
+│   └── ROADMAP.md
+├── scripts/
+│   └── update_readme.py
+├── .gitignore
+└── README.md
+```
 <!-- AUTO:STRUCTURE:END -->
 
 ---
@@ -180,6 +215,28 @@ streamlit run app/main.py
 ## 📊 Statistiques du code
 
 <!-- AUTO:STATS:START -->
+| Langage | Fichiers | Lignes (hors vides) |
+|---|---|---|
+| Markdown | 3 | 640 |
+| Autres | 1 | 22 |
+| Python | 1 | 322 |
+| YAML | 1 | 43 |
+| **Total** | **6** | **1027** |
+
+**Tests automatisés détectés :** 0
+
+**Stack cible** (dépendances lues dans `requirements*.txt` / `pyproject.toml`) :
+
+| Brique | Paquet | Déclaré |
+|---|---|---|
+| Streamlit | `streamlit` | ⬜ |
+| SQLAlchemy | `sqlalchemy` | ⬜ |
+| Alembic | `alembic` | ⬜ |
+| Pandas | `pandas` | ⬜ |
+| Pydantic | `pydantic` | ⬜ |
+| Plotly | `plotly` | ⬜ |
+| yfinance | `yfinance` | ⬜ |
+| Finnhub | `finnhub-python` | ⬜ |
 <!-- AUTO:STATS:END -->
 
 ---
@@ -187,6 +244,9 @@ streamlit run app/main.py
 ## 📝 Derniers changements
 
 <!-- AUTO:COMMITS:START -->
+| Commit | Date | Auteur | Message |
+|---|---|---|---|
+| `af4a092` | 26/10/2026 | Claude | Ajoute un README auto-mis à jour et le cahier des charges |
 <!-- AUTO:COMMITS:END -->
 
 ---
