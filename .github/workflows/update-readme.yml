@@ -1,0 +1,50 @@
+name: Mise à jour du README
+
+# Régénère les sections automatiques du README après chaque push.
+# Le commit produit porte [skip ci] et ne modifie que README.md :
+# il ne redéclenche donc pas ce workflow.
+on:
+  push:
+    branches: ["**"]
+    paths-ignore:
+      - "README.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-readme-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt (historique complet)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Régénérer les sections automatiques
+        run: python scripts/update_readme.py
+
+      - name: Committer et pousser si le README a changé
+        run: |
+          if git diff --quiet -- README.md; then
+            echo "README déjà à jour, rien à committer."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "docs(readme): mise à jour automatique [readme-bot] [skip ci]"
+          # Si la branche a avancé entre-temps, le run déclenché par ce
+          # nouveau push régénérera le README : inutile de forcer.
+          git push origin "HEAD:${GITHUB_REF_NAME}" \
+            || echo "::notice::La branche a avancé pendant l'exécution, le prochain run mettra le README à jour."

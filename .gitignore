@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Données locales et secrets (cahier des charges §18 : stockage local uniquement)
+*.db
+*.sqlite
+*.sqlite3
+backups/
+.env
+.streamlit/secrets.toml
+config/secrets*
+
+# Éditeurs / OS
+.vscode/
+.idea/
+.DS_Store
