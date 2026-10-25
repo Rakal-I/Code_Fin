@@ -14,6 +14,7 @@ from fontTools.pens.transformPen import TransformPen
 OUT = str(Path(__file__).resolve().parent.parent / "assets") + "/"
 FONT = sys.argv[1] if len(sys.argv) > 1 else "/usr/share/fonts/opentype/inter/InterDisplay-SemiBold.otf"
 NAME = "Ancora"
+GLYPH = "sommet"  # "sommet" (retenu), "orbite" ou "horizon"
 GREEN = "#30D158"
 
 def squircle(x, y, size, n=5.0, steps=160):
@@ -28,6 +29,28 @@ def squircle(x, y, size, n=5.0, steps=160):
         pts.append(f"{px:.2f},{py:.2f}")
     return "M" + " L".join(pts) + " Z"
 
+def stroke(d, k):
+    return (f'<path d="{d}" fill="none" stroke="#FFFFFF" stroke-width="{6.5 * k:.2f}" '
+            'stroke-linecap="round" stroke-linejoin="round"/>')
+
+def dot(P, k, a, b, r=6.5):
+    cx, cy = P(a, b).split(",")
+    return f'<circle cx="{cx}" cy="{cy}" r="{r * k:.2f}" fill="{GREEN}"/>'
+
+# Motifs abstraits, dessinés dans un carré de 100 × 100.
+GLYPHS = {
+    # Un « A » ouvert : sommet qui monte, le point vert tient lieu de barre.
+    "sommet": lambda P, k: stroke(f"M{P(29, 72)} L{P(50, 29)} L{P(71, 72)}", k) + dot(P, k, 50, 60),
+    # Un anneau et son point d'ancrage.
+    "orbite": lambda P, k: (
+        f'<circle cx="{P(50, 46).split(",")[0]}" cy="{P(50, 46).split(",")[1]}" r="{21 * k:.2f}" '
+        f'fill="none" stroke="#FFFFFF" stroke-width="{6.5 * k:.2f}"/>' + dot(P, k, 50, 67, 7.5)
+    ),
+    # Un arc posé sur une ligne d'horizon, le point au centre.
+    "horizon": lambda P, k: stroke(f"M{P(27, 66)} L{P(73, 66)}", k)
+        + stroke(f"M{P(31, 53)} A{19 * k:.2f},{19 * k:.2f} 0 0 1 {P(69, 53)}", k) + dot(P, k, 50, 53),
+}
+
 def icon(x, y, size, uid):
     k = size / 100
     P = lambda a, b: f"{x + a * k:.2f},{y + b * k:.2f}"
@@ -39,12 +62,7 @@ def icon(x, y, size, uid):
   </defs>
   <path d="{squircle(x, y, size)}" fill="url(#{uid})"/>
   <path d="{squircle(x + 0.5 * k, y + 0.5 * k, size - k)}" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="{k:.2f}"/>
-  <g fill="none" stroke="#FFFFFF" stroke-width="{6 * k:.2f}" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M{P(50, 36)} L{P(50, 77)}"/>
-    <path d="M{P(38, 45)} L{P(62, 45)}"/>
-    <path d="M{P(27, 58)} C{P(28, 71)} {P(38, 77)} {P(50, 77)} C{P(62, 77)} {P(72, 71)} {P(73, 58)}"/>
-  </g>
-  <circle cx="{x + 50 * k:.2f}" cy="{y + 26 * k:.2f}" r="{7 * k:.2f}" fill="none" stroke="{GREEN}" stroke-width="{6 * k:.2f}"/>'''
+  {GLYPHS[GLYPH](P, k)}'''
 
 def wordmark(text, x, baseline, size, tracking_em, color):
     font = TTFont(FONT)

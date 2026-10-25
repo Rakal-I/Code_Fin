@@ -332,9 +332,11 @@ même façon dans la plupart des langues. Le nom porte l'idée d'un point
 d'ancrage : une source unique et stable de référence pour tout le patrimoine,
 qui tient bon quand les marchés bougent.
 
-Le style est **moderne et minimaliste**, dans l'esprit des icônes Apple. L'icône
-a des coins continus (superellipse) sur un fond graphite, avec une ancre
-dessinée d'un seul trait blanc. Son anneau vert est la seule touche de couleur.
+Le style est **moderne, minimaliste et abstrait**, dans l'esprit des icônes
+Apple. L'icône a des coins continus (superellipse) sur un fond graphite. Un seul
+trait blanc dessine un sommet ouvert, qui suggère à la fois l'initiale **A** et
+une progression. À la place de la barre du A, le point vert est le point
+d'ancrage : la seule touche de couleur.
 
 | Fichier | Usage |
 |---|---|
