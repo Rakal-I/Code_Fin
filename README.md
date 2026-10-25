@@ -17,7 +17,7 @@ un patrimoine financier réparti entre plusieurs enveloppes
 > ou de vente.
 
 <!-- AUTO:META:START -->
-> 🔄 **Dernière mise à jour :** 26/10/2026 00:06 (heure de Paris) · commit `0a47799` · 4 commits au total
+> 🔄 **Dernière mise à jour :** 26/10/2026 00:10 (heure de Paris) · commit `37b926f` · 5 commits au total
 <!-- AUTO:META:END -->
 
 ---
@@ -230,11 +230,11 @@ Code_Fin/
 <!-- AUTO:STATS:START -->
 | Langage | Fichiers | Lignes (hors vides) |
 |---|---|---|
-| Autres | 4 | 60 |
-| Markdown | 3 | 674 |
-| Python | 2 | 397 |
+| Autres | 4 | 72 |
+| Markdown | 3 | 669 |
+| Python | 2 | 402 |
 | YAML | 1 | 43 |
-| **Total** | **10** | **1174** |
+| **Total** | **10** | **1186** |
 
 **Tests automatisés détectés :** 0
 
@@ -259,6 +259,7 @@ Code_Fin/
 <!-- AUTO:COMMITS:START -->
 | Commit | Date | Auteur | Message |
 |---|---|---|---|
+| `37b926f` | 26/10/2026 | Claude | Renomme l'application en « Ancora » avec un logo en forme d'ancre |
 | `0a47799` | 26/10/2026 | Claude | Refait le logo Vigie dans un style minimaliste façon Apple |
 | `6be385f` | 26/10/2026 | Claude | Nomme l'application « Vigie » et ajoute son logo |
 | `9057d72` | 26/10/2026 | Claude | Ignore les commits du bot dans l'en-tête du README |
