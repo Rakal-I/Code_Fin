@@ -124,11 +124,16 @@ def format_date(iso: str) -> str:
 # --------------------------------------------------------------------------
 
 def section_meta() -> str:
-    head = git("log", "-1", "--format=%h|%cI")
-    if not head:
+    # Les commits du bot sont ignorés : le README décrit le dernier changement réel.
+    commits = [
+        line.split("|", 2)
+        for line in git("log", "--format=%h|%cI|%s").splitlines()
+        if BOT_TAG not in line
+    ]
+    if not commits:
         return "_Aucun commit pour l'instant._"
-    short_hash, date = head.split("|", 1)
-    total = int(git("rev-list", "--count", "HEAD") or 0)
+    short_hash, date, _ = commits[0]
+    total = len(commits)
     return (
         f"> 🔄 **Dernière mise à jour :** {format_date(date)} (heure de Paris) · "
         f"commit `{short_hash}` · {total} commit{'s' if total > 1 else ''} au total"

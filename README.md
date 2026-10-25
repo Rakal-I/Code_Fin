@@ -219,9 +219,9 @@ Code_Fin/
 |---|---|---|
 | Markdown | 3 | 640 |
 | Autres | 1 | 22 |
-| Python | 1 | 322 |
+| Python | 1 | 327 |
 | YAML | 1 | 43 |
-| **Total** | **6** | **1027** |
+| **Total** | **6** | **1032** |
 
 **Tests automatisés détectés :** 0
 
