@@ -17,7 +17,7 @@ un patrimoine financier réparti entre plusieurs enveloppes
 > ou de vente.
 
 <!-- AUTO:META:START -->
-> 🔄 **Dernière mise à jour :** 26/10/2026 00:03 (heure de Paris) · commit `6be385f` · 3 commits au total
+> 🔄 **Dernière mise à jour :** 26/10/2026 00:06 (heure de Paris) · commit `0a47799` · 4 commits au total
 <!-- AUTO:META:END -->
 
 ---
@@ -216,6 +216,7 @@ Code_Fin/
 │   ├── cahier_des_charges.md
 │   └── ROADMAP.md
 ├── scripts/
+│   ├── generate_logo.py
 │   └── update_readme.py
 ├── .gitignore
 └── README.md
@@ -229,11 +230,11 @@ Code_Fin/
 <!-- AUTO:STATS:START -->
 | Langage | Fichiers | Lignes (hors vides) |
 |---|---|---|
-| Autres | 4 | 62 |
-| Markdown | 3 | 659 |
-| Python | 1 | 327 |
+| Autres | 4 | 60 |
+| Markdown | 3 | 674 |
+| Python | 2 | 397 |
 | YAML | 1 | 43 |
-| **Total** | **9** | **1091** |
+| **Total** | **10** | **1174** |
 
 **Tests automatisés détectés :** 0
 
@@ -258,6 +259,7 @@ Code_Fin/
 <!-- AUTO:COMMITS:START -->
 | Commit | Date | Auteur | Message |
 |---|---|---|---|
+| `0a47799` | 26/10/2026 | Claude | Refait le logo Vigie dans un style minimaliste façon Apple |
 | `6be385f` | 26/10/2026 | Claude | Nomme l'application « Vigie » et ajoute son logo |
 | `9057d72` | 26/10/2026 | Claude | Ignore les commits du bot dans l'en-tête du README |
 | `af4a092` | 26/10/2026 | Claude | Ajoute un README auto-mis à jour et le cahier des charges |
