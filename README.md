@@ -333,24 +333,23 @@ même façon dans la plupart des langues. Le nom porte l'idée d'un point
 d'ancrage : une source unique et stable de référence pour tout le patrimoine,
 qui tient bon quand les marchés bougent.
 
-Le style est **moderne, minimaliste et abstrait**, dans l'esprit des icônes
-Apple. L'icône a des coins continus (superellipse) sur un fond graphite. Un seul
-trait blanc dessine un sommet ouvert, qui suggère à la fois l'initiale **A** et
-une progression. À la place de la barre du A, le point vert est le point
-d'ancrage : la seule touche de couleur.
+L'identité est **noir et blanc, minimaliste et abstraite**, dans l'esprit des
+icônes Apple. L'icône est une superellipse noire (coins continus). Elle porte un
+**anneau de répartition** en trois segments d'un même blanc, de plus en plus
+transparents : c'est le patrimoine vu comme un tout, réparti entre ses
+enveloppes. Sur fond sombre, l'icône du logo s'inverse (fond blanc, anneau noir).
 
 | Fichier | Usage |
 |---|---|
 | [`assets/logo.svg`](assets/logo.svg) | Logo complet, fond clair |
-| [`assets/logo-dark.svg`](assets/logo-dark.svg) | Logo complet, fond sombre |
+| [`assets/logo-dark.svg`](assets/logo-dark.svg) | Logo complet, fond sombre (icône inversée) |
 | [`assets/icon.svg`](assets/icon.svg) | Icône seule (favicon Streamlit, avatar) |
 
 | Rôle | Valeur |
 |---|---|
-| Fond de l'icône | dégradé graphite `#3A3A3C` → `#1C1C1E` |
-| Accent | vert `#30D158` |
-| Texte | `#1D1D1F` (fond clair) · `#F5F5F7` (fond sombre) |
-| Typographie | Inter Display SemiBold, convertie en tracés (rendu identique partout) |
+| Couleurs | noir `#000000` · blanc `#FFFFFF` · gris `#8E8E93` (texte secondaire) |
+| Anneau | segments de 50 %, 30 % et 20 %, opacités 100 %, 62 % et 34 % |
+| Typographie | Inter Display Light en minuscules, convertie en tracés (rendu identique partout) |
 
 Les SVG sont produits par [`scripts/generate_logo.py`](scripts/generate_logo.py)
 (nécessite `pip install fonttools` et la police Inter Display).
