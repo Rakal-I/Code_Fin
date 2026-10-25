@@ -10,7 +10,7 @@ un patrimoine financier réparti entre plusieurs enveloppes
 > ou de vente.
 
 <!-- AUTO:META:START -->
-> 🔄 **Dernière mise à jour :** 26/10/2026 00:00 (heure de Paris) · commit `af4a092` · 1 commit au total
+> 🔄 **Dernière mise à jour :** 26/10/2026 00:00 (heure de Paris) · commit `9057d72` · 2 commits au total
 <!-- AUTO:META:END -->
 
 ---
@@ -246,6 +246,7 @@ Code_Fin/
 <!-- AUTO:COMMITS:START -->
 | Commit | Date | Auteur | Message |
 |---|---|---|---|
+| `9057d72` | 26/10/2026 | Claude | Ignore les commits du bot dans l'en-tête du README |
 | `af4a092` | 26/10/2026 | Claude | Ajoute un README auto-mis à jour et le cahier des charges |
 <!-- AUTO:COMMITS:END -->
 
