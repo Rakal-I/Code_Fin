@@ -17,7 +17,7 @@ un patrimoine financier réparti entre plusieurs enveloppes
 > ou de vente.
 
 <!-- AUTO:META:START -->
-> 🔄 **Dernière mise à jour :** 26/10/2026 00:10 (heure de Paris) · commit `37b926f` · 5 commits au total
+> 🔄 **Dernière mise à jour :** 26/10/2026 00:11 (heure de Paris) · commit `3ec2ab1` · 6 commits au total
 <!-- AUTO:META:END -->
 
 ---
@@ -230,11 +230,11 @@ Code_Fin/
 <!-- AUTO:STATS:START -->
 | Langage | Fichiers | Lignes (hors vides) |
 |---|---|---|
-| Autres | 4 | 72 |
-| Markdown | 3 | 669 |
-| Python | 2 | 402 |
+| Autres | 4 | 57 |
+| Markdown | 3 | 671 |
+| Python | 2 | 417 |
 | YAML | 1 | 43 |
-| **Total** | **10** | **1186** |
+| **Total** | **10** | **1188** |
 
 **Tests automatisés détectés :** 0
 
@@ -259,6 +259,7 @@ Code_Fin/
 <!-- AUTO:COMMITS:START -->
 | Commit | Date | Auteur | Message |
 |---|---|---|---|
+| `3ec2ab1` | 26/10/2026 | Claude | Remplace l'ancre par un logo abstrait « sommet » |
 | `37b926f` | 26/10/2026 | Claude | Renomme l'application en « Ancora » avec un logo en forme d'ancre |
 | `0a47799` | 26/10/2026 | Claude | Refait le logo Vigie dans un style minimaliste façon Apple |
 | `6be385f` | 26/10/2026 | Claude | Nomme l'application « Vigie » et ajoute son logo |
