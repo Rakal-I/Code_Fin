@@ -1,7 +1,7 @@
 <h1 align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
-    <img src="assets/logo.svg" alt="Vigie — suivi patrimonial et financier" width="400">
+    <img src="assets/logo.svg" alt="Vigie — suivi patrimonial et financier" height="72">
   </picture>
 </h1>
 
@@ -326,11 +326,30 @@ README, puis ajoutez la fonction correspondante dans `render()` du script.
 
 Le nom **Vigie** désigne le poste d'observation d'un navire : l'application
 observe et signale (cours, fraîcheur des données, alertes de qualité), mais ne
-donne jamais de conseil. Dans le logo, une courbe de cours forme un **V**, et
-le point doré marque le cours actuel.
+donne jamais de conseil.
+
+Le style est **moderne et minimaliste**, dans l'esprit des icônes Apple. L'icône
+a des coins continus (superellipse) sur un fond graphite. Un seul trait blanc
+dessine à la fois un **V** et une courbe de cours qui remonte, et le point vert
+marque le cours actuel.
 
 | Fichier | Usage |
 |---|---|
+| [`assets/logo.svg`](assets/logo.svg) | Logo complet, fond clair |
+| [`assets/logo-dark.svg`](assets/logo-dark.svg) | Logo complet, fond sombre |
+| [`assets/icon.svg`](assets/icon.svg) | Icône seule (favicon Streamlit, avatar) |
+
+| Rôle | Valeur |
+|---|---|
+| Fond de l'icône | dégradé graphite `#3A3A3C` → `#1C1C1E` |
+| Accent | vert `#30D158` |
+| Texte | `#1D1D1F` (fond clair) · `#F5F5F7` (fond sombre) |
+| Typographie | Inter Display SemiBold, convertie en tracés (rendu identique partout) |
+
+Les SVG sont produits par [`scripts/generate_logo.py`](scripts/generate_logo.py)
+(nécessite `pip install fonttools` et la police Inter Display).
+
+---|---|
 | [`assets/logo.svg`](assets/logo.svg) | Logo complet, fond clair |
 | [`assets/logo-dark.svg`](assets/logo-dark.svg) | Logo complet, fond sombre |
 | [`assets/icon.svg`](assets/icon.svg) | Icône seule (favicon Streamlit, avatar) |
