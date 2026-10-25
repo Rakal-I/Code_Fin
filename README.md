@@ -17,7 +17,7 @@ un patrimoine financier réparti entre plusieurs enveloppes
 > ou de vente.
 
 <!-- AUTO:META:START -->
-> 🔄 **Dernière mise à jour :** 26/10/2026 00:16 (heure de Paris) · commit `e3439a9` · 7 commits au total
+> 🔄 **Dernière mise à jour :** 26/10/2026 00:52 (heure de Paris) · commit `5846c7e` · 8 commits au total
 <!-- AUTO:META:END -->
 
 ---
@@ -185,16 +185,16 @@ l'architecture cible sont regroupés dans le paquet `app/` ; `tests/` et `migrat
 <!-- AUTO:ARCHITECTURE:START -->
 | Dossier | Rôle | État | Fichiers Python |
 |---|---|---|---|
-| `app/` | Paquet de l'application (point d'entrée : streamlit_app.py) | ⬜ À créer | — |
-| `pages/` | Pages et tableaux de bord Streamlit | ⬜ À créer | — |
-| `domain/` | Règles métier : PRU, valorisation, plus-values, devises | ⬜ À créer | — |
-| `services/` | Orchestration : actualisation, sauvegarde, archivage | ⬜ À créer | — |
-| `connectors/` | Fournisseurs de données : yfinance, Finnhub, SEC EDGAR, saisie manuelle | ⬜ À créer | — |
-| `models/` | Modèles SQLAlchemy et schémas Pydantic | ⬜ À créer | — |
-| `database/` | Accès SQLite et gestion des sessions | ⬜ À créer | — |
-| `config/` | Paramètres de l'application (clés API hors dépôt) | ⬜ À créer | — |
-| `tests/` | Tests automatisés | ⬜ À créer | — |
-| `migrations/` | Migrations de schéma Alembic | ⬜ À créer | — |
+| `app/` | Paquet de l'application (point d'entrée : streamlit_app.py) | ✅ Présent | 5 |
+| `app/pages/` | Pages et tableaux de bord Streamlit | ✅ Présent | 8 |
+| `app/domain/` | Règles métier : PRU, valorisation, plus-values, devises | ✅ Présent | 5 |
+| `app/services/` | Orchestration : actualisation, sauvegarde, archivage | ✅ Présent | 6 |
+| `app/connectors/` | Fournisseurs de données : yfinance, Finnhub, SEC EDGAR, saisie manuelle | ✅ Présent | 6 |
+| `app/models/` | Modèles SQLAlchemy et schémas Pydantic | ✅ Présent | 4 |
+| `app/database/` | Accès SQLite et gestion des sessions | ✅ Présent | 2 |
+| `config/`, `app/config/` | Paramètres de l'application (clés API hors dépôt) | ✅ Présent | 2 |
+| `tests/` | Tests automatisés | ✅ Présent | 6 |
+| `migrations/` | Migrations de schéma Alembic | ✅ Présent | 2 |
 <!-- AUTO:ARCHITECTURE:END -->
 
 ---
@@ -254,19 +254,89 @@ pytest            # dont tests/test_recette.py : les 13 critères de recette
 Code_Fin/
 ├── .github/
 │   └── workflows/
+│       ├── tests.yml
 │       └── update-readme.yml
+├── .streamlit/
+│   └── config.toml
+├── app/
+│   ├── config/
+│   │   ├── __init__.py
+│   │   └── settings.py
+│   ├── connectors/
+│   │   ├── __init__.py
+│   │   ├── base.py
+│   │   ├── finnhub.py
+│   │   ├── registry.py
+│   │   ├── sec_edgar.py
+│   │   └── yahoo.py
+│   ├── database/
+│   │   ├── __init__.py
+│   │   └── engine.py
+│   ├── domain/
+│   │   ├── __init__.py
+│   │   ├── fundamentals.py
+│   │   ├── performance.py
+│   │   ├── portfolio.py
+│   │   └── quality.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── entities.py
+│   │   ├── enums.py
+│   │   └── schemas.py
+│   ├── pages/
+│   │   ├── admin.py
+│   │   ├── dashboard.py
+│   │   ├── entry.py
+│   │   ├── envelopes.py
+│   │   ├── income.py
+│   │   ├── markets.py
+│   │   ├── portfolio.py
+│   │   └── quality.py
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── backup.py
+│   │   ├── logging_setup.py
+│   │   ├── market_data.py
+│   │   ├── portfolio.py
+│   │   └── referential.py
+│   ├── ui/
+│   │   ├── __init__.py
+│   │   ├── context.py
+│   │   ├── theme.py
+│   │   └── views.py
+│   └── __init__.py
 ├── assets/
 │   ├── icon.svg
 │   ├── logo-dark.svg
 │   └── logo.svg
+├── config/
+│   └── secrets.example.toml
 ├── docs/
 │   ├── cahier_des_charges.md
 │   └── ROADMAP.md
+├── migrations/
+│   ├── versions/
+│   │   └── 0001_schema_initial.py
+│   ├── env.py
+│   └── script.py.mako
 ├── scripts/
+│   ├── demo_data.py
 │   ├── generate_logo.py
 │   └── update_readme.py
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── test_domain.py
+│   ├── test_recette.py
+│   ├── test_services.py
+│   └── test_ui.py
 ├── .gitignore
-└── README.md
+├── alembic.ini
+├── pyproject.toml
+├── README.md
+├── requirements-dev.txt
+├── requirements.txt
+└── … (+1 éléments)
 ```
 <!-- AUTO:STRUCTURE:END -->
 
@@ -277,25 +347,28 @@ Code_Fin/
 <!-- AUTO:STATS:START -->
 | Langage | Fichiers | Lignes (hors vides) |
 |---|---|---|
-| Autres | 4 | 29 |
+| Python | 50 | 4607 |
+| Autres | 5 | 45 |
 | Markdown | 3 | 715 |
-| Python | 2 | 411 |
-| YAML | 1 | 43 |
-| **Total** | **10** | **1198** |
+| TOML | 3 | 43 |
+| Texte | 2 | 14 |
+| YAML | 2 | 71 |
+| INI | 1 | 29 |
+| **Total** | **66** | **5524** |
 
-**Tests automatisés détectés :** 0
+**Tests automatisés détectés :** 58
 
 **Stack cible** (dépendances lues dans `requirements*.txt` / `pyproject.toml`) :
 
 | Brique | Paquet | Déclaré |
 |---|---|---|
-| Streamlit | `streamlit` | ⬜ |
-| SQLAlchemy | `sqlalchemy` | ⬜ |
-| Alembic | `alembic` | ⬜ |
-| Pandas | `pandas` | ⬜ |
-| Pydantic | `pydantic` | ⬜ |
-| Plotly | `plotly` | ⬜ |
-| yfinance | `yfinance` | ⬜ |
+| Streamlit | `streamlit` | ✅ |
+| SQLAlchemy | `sqlalchemy` | ✅ |
+| Alembic | `alembic` | ✅ |
+| Pandas | `pandas` | ✅ |
+| Pydantic | `pydantic` | ✅ |
+| Plotly | `plotly` | ✅ |
+| yfinance | `yfinance` | ✅ |
 | Finnhub | `finnhub-python` | ⬜ |
 <!-- AUTO:STATS:END -->
 
@@ -306,6 +379,7 @@ Code_Fin/
 <!-- AUTO:COMMITS:START -->
 | Commit | Date | Auteur | Message |
 |---|---|---|---|
+| `5846c7e` | 26/10/2026 | Claude | Crée l'application Ancora (version 1 du cahier des charges) |
 | `e3439a9` | 26/10/2026 | Claude | Nouvelle identité Ancora : anneau de répartition en noir et blanc |
 | `3ec2ab1` | 26/10/2026 | Claude | Remplace l'ancre par un logo abstrait « sommet » |
 | `37b926f` | 26/10/2026 | Claude | Renomme l'application en « Ancora » avec un logo en forme d'ancre |
