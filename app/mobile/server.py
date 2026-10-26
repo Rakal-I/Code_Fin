@@ -12,7 +12,8 @@ from collections import Counter
 from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime, timedelta
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -24,7 +25,7 @@ from app.database.engine import session_scope
 from app.domain.quality import BADGES
 from app.models.entities import RefreshLog
 from app.models.enums import DataStatus, InstrumentType
-from app.services import market_data, referential
+from app.services import auth, market_data, referential
 from app.services import portfolio as pf
 from app.ui import views
 
@@ -53,6 +54,69 @@ def _require_app_header(x_ancora: str | None) -> None:
     """Les écritures exigent un en-tête personnalisé : un autre site ne peut pas l'envoyer sans autorisation."""
     if x_ancora != "1":
         raise HTTPException(status_code=403, detail="Requête refusée.")
+
+
+# --------------------------------------------------------------------------
+# Connexion : toute l'API est protégée, sauf ces routes
+# --------------------------------------------------------------------------
+
+COOKIE = "ancora_session"
+PUBLIC_API = {"/api/auth/status", "/api/auth/login", "/api/health"}
+
+
+@app.middleware("http")
+async def require_session(request: Request, call_next):
+    if request.url.path.startswith("/api/") and request.url.path not in PUBLIC_API:
+        with _session() as s:
+            account = auth.resolve_session(s, request.cookies.get(COOKIE))
+        if account is None:
+            return JSONResponse({"detail": "Connexion requise."}, status_code=401)
+    return await call_next(request)
+
+
+def _is_https(request: Request) -> bool:
+    return request.url.scheme == "https" or request.headers.get("x-forwarded-proto", "").lower() == "https"
+
+
+@app.get("/api/auth/status")
+def auth_status(request: Request) -> dict:
+    with _session() as s:
+        configured = auth.account_exists(s)
+        account = auth.resolve_session(s, request.cookies.get(COOKIE)) if configured else None
+        return {"configured": configured, "authenticated": account is not None,
+                "username": account.username if account else None}
+
+
+class LoginIn(BaseModel):
+    username: str
+    password: str
+
+
+@app.post("/api/auth/login")
+def auth_login(data: LoginIn, request: Request, response: Response,
+               x_ancora: str | None = Header(default=None)) -> dict:
+    _require_app_header(x_ancora)
+    with _session() as s:
+        result = auth.authenticate(s, data.username, data.password)
+        if not result.ok:
+            s.commit()  # le compteur d'échecs est enregistré
+            raise HTTPException(status_code=429 if result.locked_until else 401, detail=result.message)
+        device = request.headers.get("user-agent", "")
+        label = "iPhone" if "iPhone" in device else "iPad" if "iPad" in device else "Navigateur"
+        token = auth.create_session(s, result.account_id, label)
+        username = auth.get_account(s).username
+    response.set_cookie(COOKIE, token, max_age=auth.SESSION_DAYS * 86400, httponly=True, samesite="strict",
+                        secure=_is_https(request), path="/")
+    return {"ok": True, "username": username}
+
+
+@app.post("/api/auth/logout")
+def auth_logout(request: Request, response: Response, x_ancora: str | None = Header(default=None)) -> dict:
+    _require_app_header(x_ancora)
+    with _session() as s:
+        auth.revoke_session(s, request.cookies.get(COOKIE))
+    response.delete_cookie(COOKIE, path="/")
+    return {"ok": True}
 
 
 # --------------------------------------------------------------------------

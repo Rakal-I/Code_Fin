@@ -5,14 +5,18 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.config import settings
-from app.database.engine import dispose_engine, upgrade_to_head
+from app.database.engine import dispose_engine, session_scope, upgrade_to_head
 from app.mobile import server
+from app.services import auth
 from tests.conftest import FakeConnector
 from tests.test_ui import populate
 
+USER, PASSWORD = "proprietaire", "Patrimoine2026"
+
 
 @pytest.fixture
-def client(tmp_path, monkeypatch):
+def anonymous(tmp_path, monkeypatch):
+    """Client non connecté, sur une base remplie avec un compte configuré."""
     db = tmp_path / "ancora.db"
     monkeypatch.setenv("ANCORA_DB_PATH", str(db))
     monkeypatch.setenv("ANCORA_BACKUP_DIR", str(tmp_path / "backups"))
@@ -20,10 +24,64 @@ def client(tmp_path, monkeypatch):
     settings.get_config.cache_clear()
     upgrade_to_head(db)
     populate(db)
+    with session_scope(db) as s:
+        auth.create_account(s, USER, PASSWORD, PASSWORD)
     with TestClient(server.app) as test_client:
         yield test_client
     settings.get_config.cache_clear()
     dispose_engine(db)
+
+
+@pytest.fixture
+def client(anonymous):
+    response = anonymous.post("/api/auth/login", json={"username": USER, "password": PASSWORD},
+                              headers={"X-Ancora": "1"})
+    assert response.status_code == 200
+    return anonymous
+
+
+def test_api_protegee_sans_connexion(anonymous):
+    for path in ("/api/summary", "/api/markets", "/api/instruments/7", "/api/income", "/api/quality",
+                 "/api/refresh"):
+        assert anonymous.get(path).status_code == 401, path
+    status = anonymous.get("/api/auth/status").json()
+    assert status == {"configured": True, "authenticated": False, "username": None}
+    assert anonymous.get("/").status_code == 200  # l'écran de connexion lui-même reste accessible
+
+
+def test_connexion_et_deconnexion(anonymous):
+    bad = anonymous.post("/api/auth/login", json={"username": USER, "password": "mauvais"}, headers={"X-Ancora": "1"})
+    assert bad.status_code == 401 and "incorrect" in bad.json()["detail"]
+    assert anonymous.post("/api/auth/login", json={"username": USER, "password": PASSWORD}).status_code == 403
+    ok = anonymous.post("/api/auth/login", json={"username": USER, "password": PASSWORD}, headers={"X-Ancora": "1"})
+    cookie = ok.headers["set-cookie"].lower()
+    assert "httponly" in cookie and "samesite=strict" in cookie
+    assert anonymous.get("/api/summary").status_code == 200
+    assert anonymous.get("/api/auth/status").json()["username"] == USER
+    anonymous.post("/api/auth/logout", headers={"X-Ancora": "1"})
+    assert anonymous.get("/api/summary").status_code == 401
+
+
+def test_blocage_apres_echecs(anonymous):
+    for _ in range(auth.MAX_FAILURES):
+        anonymous.post("/api/auth/login", json={"username": USER, "password": "x"}, headers={"X-Ancora": "1"})
+    locked = anonymous.post("/api/auth/login", json={"username": USER, "password": PASSWORD},
+                            headers={"X-Ancora": "1"})
+    assert locked.status_code == 429
+
+
+def test_aucun_compte_configure(tmp_path, monkeypatch):
+    db = tmp_path / "vide.db"
+    monkeypatch.setenv("ANCORA_DB_PATH", str(db))
+    monkeypatch.setenv("ANCORA_LOG_DIR", str(tmp_path / "logs"))
+    settings.get_config.cache_clear()
+    try:
+        with TestClient(server.app) as c:
+            assert c.get("/api/auth/status").json()["configured"] is False
+            assert c.get("/api/summary").status_code == 401
+    finally:
+        settings.get_config.cache_clear()
+        dispose_engine(db)
 
 
 def test_synthese(client):

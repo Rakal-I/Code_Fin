@@ -315,3 +315,33 @@ a.row:active, button.row:active { background: var(--fill); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0s !important; transition-duration: 0s !important; }
 }
+
+/* ---------------------------------------------------------------- Connexion */
+body.locked .tabbar, body.locked #refresh-btn, body.locked .navbar .left { display: none; }
+body.locked { padding-bottom: 0; }
+.login { min-height: calc(100vh - 120px); display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 0 20px 40px; }
+.login-card { width: 100%; max-width: 380px; padding: 30px 24px 22px; text-align: center; }
+.login-card > * { position: relative; z-index: 1; }
+.login-card .app-icon { width: 76px; height: 76px; border-radius: 18px; box-shadow: 0 10px 30px rgba(0, 0, 0, .18); }
+.login-card h1 { font-size: 28px; font-weight: 750; letter-spacing: -.3px; margin: 16px 0 4px; }
+.login-card p.lead { color: var(--secondary); font-size: 15px; margin: 0 0 22px; }
+.field { display: block; text-align: left; margin-bottom: 12px; }
+.field span { display: block; font-size: 13px; font-weight: 600; color: var(--secondary); margin: 0 0 6px 14px; }
+.field input {
+  width: 100%; height: 50px; padding: 0 16px; border-radius: 14px; font: inherit; font-size: 17px; color: var(--label);
+  background: var(--fill); border: 0.5px solid var(--glass-border); outline: none; transition: box-shadow .2s;
+}
+.field input:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.primary {
+  width: 100%; height: 52px; margin-top: 8px; border-radius: 999px; background: var(--accent); color: var(--on-accent);
+  font-size: 17px; font-weight: 650; box-shadow: 0 10px 24px rgba(0, 0, 0, .18), inset 0 1px 0 rgba(255, 255, 255, .2);
+  transition: transform .15s, opacity .2s;
+}
+.primary:active { transform: scale(.97); }
+.primary:disabled { opacity: .5; }
+.login-error { color: var(--loss); font-size: 14px; min-height: 18px; margin: 12px 0 0; }
+.login-foot { color: var(--secondary); font-size: 12px; margin-top: 18px; text-align: center; max-width: 320px; }
+.shake { animation: shake .4s cubic-bezier(.36, .07, .19, .97); }
+@keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+.destructive { color: var(--loss) !important; font-weight: 600; }

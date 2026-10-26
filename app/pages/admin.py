@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from app.config.settings import CONSOLIDATION_CURRENCY
 from app.models.enums import SUBTYPES_BY_TYPE, EnvelopeType, InstrumentType
 from app.models.schemas import EnvelopeIn, InstrumentIn
-from app.services import backup, market_data, referential
+from app.services import auth, backup, market_data, referential
 from app.services.referential import BusinessError, Preferences
 from app.ui import context, theme, views
 
@@ -265,6 +265,32 @@ with tab_settings:
                                                             fundamental_stale_days=int(fund_days)))
             st.session_state.pop("mask_amounts", None)
             st.success("Paramètres enregistrés.")
+
+    st.subheader("Sécurité")
+    with st.form("password", border=False, clear_on_submit=True):
+        c1, c2, c3 = st.columns(3)
+        current = c1.text_input("Mot de passe actuel", type="password", autocomplete="current-password")
+        new = c2.text_input("Nouveau mot de passe", type="password", autocomplete="new-password")
+        confirmation = c3.text_input("Confirmation", type="password", autocomplete="new-password")
+        if st.form_submit_button("Changer le mot de passe"):
+            try:
+                with context.session() as s:
+                    auth.change_password(s, current, new, confirmation)
+                st.success("Mot de passe modifié. Les téléphones connectés devront se reconnecter.")
+            except auth.AuthError as exc:
+                st.error(str(exc))
+    with context.session() as s:
+        phones = [(p.device or "Appareil inconnu", p.last_seen_at) for p in auth.active_sessions(s)]
+    if phones:
+        st.markdown(f"**{len(phones)} téléphone(s) connecté(s)**")
+        for device, seen in phones:
+            theme.note(f"{device} · dernière activité le {theme.day(seen)} (UTC)")
+        if st.button("Déconnecter tous les téléphones", icon=":material/phonelink_erase:"):
+            with context.session() as s:
+                auth.revoke_all_sessions(s)
+            st.rerun()
+    else:
+        theme.note("Aucun téléphone connecté.")
 
     st.subheader("Sources de données")
     sources = pd.DataFrame([

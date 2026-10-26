@@ -113,3 +113,41 @@ def test_anneau_dans_la_da_du_logo():
     svg = ring_svg([50, 30, 20], uid="t")
     assert re.findall(r'stroke-opacity="([\d.]+)"', svg) == ["1.0", "0.62", "0.34"]  # opacités du logo
     assert svg.count('stroke-linecap="round"') == 3
+
+
+def _main() -> AppTest:
+    return AppTest.from_file(str(ROOT / "streamlit_app.py"), default_timeout=60)
+
+
+def test_connexion_ordinateur(tmp_path, monkeypatch):
+    """Premier lancement : création de l'accès ; ensuite, connexion obligatoire."""
+    db = tmp_path / "ancora.db"
+    monkeypatch.setenv("ANCORA_DB_PATH", str(db))
+    monkeypatch.setenv("ANCORA_BACKUP_DIR", str(tmp_path / "backups"))
+    monkeypatch.setenv("ANCORA_LOG_DIR", str(tmp_path / "logs"))
+    settings.get_config.cache_clear()
+    try:
+        at = _main().run()
+        assert not at.exception
+        assert any("Créer mon accès" in b.label for b in at.button)
+        assert not any("Tableau de bord" in t.value for t in at.title)  # aucune donnée avant connexion
+        at.text_input[0].input("proprietaire")
+        at.text_input[1].input("Patrimoine2026")
+        at.text_input[2].input("Patrimoine2026")
+        at.button[0].click().run()
+        assert not at.exception
+        assert at.session_state["auth_user"] == "proprietaire"
+
+        # Nouvelle session navigateur : il faut se connecter.
+        at = _main().run()
+        assert any("Se connecter" in b.label for b in at.button)
+        at.text_input[0].input("proprietaire")
+        at.text_input[1].input("mauvais")
+        at.button[0].click().run()
+        assert any("incorrect" in e.value for e in at.error)
+        at.text_input[1].input("Patrimoine2026")
+        at.button[0].click().run()
+        assert not at.exception and at.session_state["auth_user"] == "proprietaire"
+    finally:
+        settings.get_config.cache_clear()
+        dispose_engine(db)

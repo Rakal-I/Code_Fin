@@ -58,11 +58,100 @@ function frDateTime(iso) {
 const ringOpacity = (i) => RING_OPACITY[Math.min(i, RING_OPACITY.length - 1)];
 
 // ------------------------------------------------------------------ Données
+class ApiError extends Error {
+  constructor(status, detail) { super(detail || `Erreur ${status}`); this.status = status; }
+}
+
 async function api(path, options = {}) {
-  const init = { ...options, headers: { "Content-Type": "application/json", "X-Ancora": "1", ...(options.headers || {}) } };
+  const init = { ...options, credentials: "same-origin",
+    headers: { "Content-Type": "application/json", "X-Ancora": "1", ...(options.headers || {}) } };
   const response = await fetch(path, init);
-  if (!response.ok) throw new Error(`Erreur ${response.status}`);
+  if (!response.ok) {
+    const detail = await response.json().then((body) => body.detail).catch(() => null);
+    if (response.status === 401 && !path.startsWith("/api/auth/")) showLogin("Votre session a expiré : reconnectez-vous.");
+    throw new ApiError(response.status, detail);
+  }
   return response.json();
+}
+
+// ------------------------------------------------------------------ Connexion
+const APP_ICON = '<img class="app-icon" src="icons/apple-touch-icon.png" alt="">';
+
+function lock() {
+  document.body.classList.add("locked");
+  $("small-title").textContent = "";
+  navbar.classList.remove("scrolled");
+  window.scrollTo(0, 0);
+}
+
+function showSetupHint() {
+  lock();
+  view.innerHTML = `<div class="login"><div class="login-card glass">${APP_ICON}
+    <h1>Bienvenue</h1><p class="lead">Créez d'abord votre accès dans Ancora sur l'ordinateur
+    (premier lancement), puis revenez ici pour vous connecter.</p>
+    <button class="primary" id="retry">J'ai créé mon accès</button></div></div>`;
+  $("retry").addEventListener("click", boot);
+}
+
+function showLogin(message = "") {
+  if (document.body.classList.contains("locked") && $("login-form")) return;
+  lock();
+  view.innerHTML = `<div class="login view-enter">
+    <form class="login-card glass" id="login-form" novalidate>
+      ${APP_ICON}
+      <h1>Ancora</h1>
+      <p class="lead">Connectez-vous pour accéder à votre patrimoine.</p>
+      <label class="field"><span>Identifiant</span>
+        <input name="username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required></label>
+      <label class="field"><span>Mot de passe</span>
+        <input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="primary" type="submit" id="login-submit">Se connecter</button>
+      <p class="login-error" id="login-error" role="alert">${esc(message)}</p>
+    </form>
+    <p class="login-foot">Vos identifiants restent sur votre ordinateur. Après 5 essais ratés, la connexion est bloquée quelques minutes.</p>
+  </div>`;
+  const form = $("login-form");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = $("login-submit");
+    button.disabled = true;
+    button.textContent = "Connexion…";
+    try {
+      await api("/api/auth/login", { method: "POST",
+        body: JSON.stringify({ username: form.username.value, password: form.password.value }) });
+      unlock();
+    } catch (error) {
+      $("login-error").textContent = error.message;
+      form.classList.remove("shake"); void form.offsetWidth; form.classList.add("shake");
+      form.password.value = "";
+      button.disabled = false;
+      button.textContent = "Se connecter";
+    }
+  });
+}
+
+function unlock() {
+  document.body.classList.remove("locked");
+  lastHash = null;
+  route();
+  requestAnimationFrame(placeLens);
+}
+
+async function logout() {
+  await api("/api/auth/logout", { method: "POST" }).catch(() => {});
+  showLogin("Vous êtes déconnecté.");
+}
+
+async function boot() {
+  try {
+    const status = await api("/api/auth/status");
+    if (!status.configured) return showSetupHint();
+    if (!status.authenticated) return showLogin();
+    unlock();
+    api("/api/refresh").then((s) => { if (s.running) { setRefreshing(true); setTimeout(pollRefresh, 1500); } }).catch(() => {});
+  } catch (error) {
+    view.innerHTML = emptyState("Ancora est injoignable", "Vérifiez que l'ordinateur qui héberge Ancora est allumé, puis réessayez.");
+  }
 }
 
 function toast(message) {
@@ -445,7 +534,8 @@ async function renderIncome() {
 // ------------------------------------------------------------------ Réglages
 async function renderSettings() {
   setNav("Réglages");
-  const [summary, quality, refresh] = await Promise.all([api("/api/summary"), api("/api/quality"), api("/api/refresh")]);
+  const [summary, quality, refresh, auth] = await Promise.all([
+    api("/api/summary"), api("/api/quality"), api("/api/refresh"), api("/api/auth/status")]);
   state.mask = summary.mask_amounts;
   const counts = quality.counts.filter((c) => c.count > 0);
   view.innerHTML = `
@@ -469,8 +559,14 @@ async function renderSettings() {
     ${quality.errors.length ? `${sectionHeader("Erreurs récentes")}<div class="list">${quality.errors.map((e) => `
       <div class="row"><div class="main"><div class="title">${esc(e.instrument)}</div>
         <div class="sub" style="white-space:normal">${esc(e.message)}</div></div></div>`).join("")}</div>` : ""}
+    ${sectionHeader("Compte")}
+    <div class="list">
+      <div class="row"><div class="main"><div class="title">Connecté</div></div><div class="detail">${esc(auth.username || "")}</div></div>
+      <button class="row" id="logout-row"><div class="main"><div class="title destructive">Se déconnecter</div></div></button>
+    </div>
+    ${sectionFooter("Pour changer de mot de passe ou déconnecter tous vos téléphones : Ancora sur ordinateur, Administration › Paramètres.")}
     ${sectionHeader("À propos")}
-    <div class="list"><div class="row"><div class="main"><div class="title">Ancora</div></div><div class="detail">Version téléphone 1.1</div></div></div>
+    <div class="list"><div class="row"><div class="main"><div class="title">Ancora</div></div><div class="detail">Version téléphone 1.2</div></div></div>
     ${sectionFooter("La saisie des opérations et l'administration se font dans Ancora sur ordinateur. Ancora n'est pas un outil de conseil en investissement.")}
   `;
   $("mask-toggle").addEventListener("change", async (event) => {
@@ -479,6 +575,7 @@ async function renderSettings() {
     toast(state.mask ? "Montants masqués" : "Montants affichés");
   });
   $("refresh-row").addEventListener("click", startRefresh);
+  $("logout-row").addEventListener("click", logout);
 }
 
 // ------------------------------------------------------------------ Actualisation (en arrière-plan)
@@ -525,7 +622,8 @@ function resetPull() {
   ptr.style.transform = "translateY(-60px)";
 }
 window.addEventListener("touchstart", (event) => {
-  pullStart = window.scrollY <= 0 && !state.refreshing ? event.touches[0].clientY : null;
+  const allowed = window.scrollY <= 0 && !state.refreshing && !document.body.classList.contains("locked");
+  pullStart = allowed ? event.touches[0].clientY : null;
   pullDistance = 0;
 }, { passive: true });
 window.addEventListener("touchmove", (event) => {
@@ -561,6 +659,7 @@ const ROUTES = [
 
 let lastHash = null;
 async function route(keepPosition = false) {
+  if (document.body.classList.contains("locked")) return;
   const hash = location.hash || "#/";
   const [pattern, render, tab] = ROUTES.find(([p]) => p.test(hash)) || ROUTES[0];
   tabbar.querySelectorAll("a").forEach((a) => a.classList.toggle("active", a.dataset.tab === tab));
@@ -576,11 +675,10 @@ async function route(keepPosition = false) {
       view.classList.add(hash.startsWith("#/instrument") ? "view-push" : "view-enter");
     }
   } catch (error) {
+    if (error.status === 401) return; // l'écran de connexion est déjà affiché
     view.innerHTML = emptyState("Ancora est injoignable", "Vérifiez que l'ordinateur qui héberge Ancora est allumé, puis réessayez.");
   }
 }
 
 window.addEventListener("hashchange", () => { navigatedInApp = true; route(); });
-api("/api/refresh").then((s) => { if (s.running) { setRefreshing(true); setTimeout(pollRefresh, 1500); } }).catch(() => {});
-route();
-requestAnimationFrame(placeLens);
+boot();

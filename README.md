@@ -229,6 +229,8 @@ référence (CAC 40, Euro Stoxx 50, S&P 500, Nasdaq, MSCI World, MSCI EM).
 
 **Premiers pas**
 
+0. **Créez votre accès** : au premier lancement, Ancora demande un identifiant et un mot de passe.
+   Ils protègent l'ordinateur et le téléphone.
 1. *Administration › Enveloppes* : créez vos enveloppes (PEA, assurance-vie, CTO…).
 2. *Administration › Instruments* : ajoutez vos instruments. Pour Yahoo Finance, le
    « symbole fournisseur » porte le suffixe de la place (`MC.PA` pour Paris, `ASML.AS`
@@ -294,8 +296,11 @@ pour un usage personnel) :
 3. Sur l'iPhone, ouvrez cette adresse dans Safari, puis **Partager › Sur l'écran d'accueil** :
    Ancora s'ouvre ensuite comme une app, avec son icône.
 
-> ⚠️ Le serveur n'écoute que sur l'ordinateur (127.0.0.1) et n'a pas d'authentification propre :
-> passez par Tailscale ou Cloudflare Tunnel + Access plutôt que d'ouvrir le port sur votre réseau.
+Le téléphone demande l'identifiant et le mot de passe créés sur l'ordinateur ; la session reste
+ouverte 30 jours. L'iPhone peut les proposer depuis le trousseau iCloud (Face ID).
+
+> ⚠️ Le serveur n'écoute que sur l'ordinateur (127.0.0.1). Même avec la connexion, préférez Tailscale
+> ou Cloudflare Tunnel + Access à l'ouverture d'un port sur votre réseau : deux protections valent mieux qu'une.
 > Variables : `ANCORA_MOBILE_HOST`, `ANCORA_MOBILE_PORT`.
 
 ---
@@ -493,6 +498,13 @@ Constats lors des essais :
 - **Aucune** transmission des positions aux fournisseurs de données.
 - Possibilité de masquer les montants à l'écran.
 - Aucune donnée sensible dans les logs.
+- **Connexion obligatoire** sur l'ordinateur et le téléphone (compte unique, créé au premier lancement) :
+  - mot de passe jamais stocké, seulement son empreinte *scrypt* salée ;
+  - après 5 essais ratés, connexion bloquée 1 min, puis 2, 4… jusqu'à 60 min ;
+  - ordinateur : verrouillage après 30 min d'inactivité ; téléphone : session de 30 jours dans un
+    cookie `HttpOnly` et `SameSite=Strict`, dont la base ne garde que l'empreinte ;
+  - changer de mot de passe (*Administration › Paramètres*) déconnecte tous les téléphones ;
+  - mot de passe oublié : `python scripts/reset_password.py` sur l'ordinateur (vos données sont conservées).
 
 ---
 

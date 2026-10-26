@@ -2,7 +2,8 @@
 
 Par défaut, le serveur n'écoute que sur cet ordinateur (127.0.0.1). Pour y accéder
 depuis le téléphone, utilisez Tailscale (« tailscale serve 8502 ») ou Cloudflare Tunnel
-plutôt que d'exposer le port sur le réseau local : l'API n'a pas d'authentification propre.
+plutôt que d'exposer le port sur le réseau local. L'API exige en plus une connexion
+(compte créé sur l'ordinateur).
 """
 import os
 

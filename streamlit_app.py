@@ -10,12 +10,15 @@ from pathlib import Path
 import streamlit as st
 
 from app.services import market_data, referential
-from app.ui import context, theme
+from app.ui import context, login, theme
 
 st.set_page_config(page_title="Ancora", page_icon=str(theme.ICON), layout="wide",
                    initial_sidebar_state="expanded")
 theme.apply()
 st.logo(str(theme.LOGO), size="large", icon_image=str(theme.ICON))
+
+# Connexion obligatoire avant toute donnée.
+user = login.require_login()
 
 PAGES = Path(__file__).parent / "app" / "pages"
 navigation = st.navigation({
@@ -62,5 +65,10 @@ with st.sidebar:
             st.warning(f"{len(failed)} élément(s) en erreur : voir « Qualité des données ».")
         else:
             st.success("Données actualisées.")
+    st.divider()
+    st.caption(f"Connecté : {user}")
+    if st.button("Se déconnecter", icon=":material/logout:", width="stretch"):
+        login.logout("Vous êtes déconnecté.")
+        st.rerun()
 
 navigation.run()
