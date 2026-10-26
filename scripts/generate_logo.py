@@ -1,4 +1,7 @@
-"""Génère le logo d'Ancora (assets/logo.svg, logo-dark.svg, icon.svg).
+"""Génère le logo d'Ancora (assets/logo.svg, logo-dark.svg, icon.svg, icon-square.svg).
+
+Les PNG de l'application téléphone (app/mobile/static/icons/) sont des rendus de
+icon-square.svg en 180, 192 et 512 px.
 
 Usage : python scripts/generate_logo.py [chemin/vers/InterDisplay-Light.otf]
 Prérequis : pip install fonttools
@@ -95,6 +98,12 @@ def logo(text_color, icon_bg, icon_fg):
 (OUT / "icon.svg").write_text(
     '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" '
     f'role="img" aria-label="Ancora">{icon(BLACK, WHITE)}</svg>\n',
+    encoding="utf-8",
+)
+# Icône d'écran d'accueil (iPhone) : carré plein, iOS arrondit lui-même les coins.
+(OUT / "icon-square.svg").write_text(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" '
+    f'role="img" aria-label="Ancora"><rect width="100" height="100" fill="{BLACK}"/>{ring(WHITE)}</svg>\n',
     encoding="utf-8",
 )
 print("Logo généré dans", OUT)

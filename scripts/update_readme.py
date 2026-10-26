@@ -59,7 +59,7 @@ STACK = [
     ("Pydantic", "pydantic"),
     ("Plotly", "plotly"),
     ("yfinance", "yfinance"),
-    ("Finnhub", "finnhub-python"),
+    ("FastAPI (téléphone)", "fastapi"),
 ]
 
 LANGUAGES = {

@@ -7,22 +7,17 @@ from typing import Iterator
 import streamlit as st
 from sqlalchemy.orm import Session
 
+from app.bootstrap import bootstrap
 from app.config.settings import AppConfig, get_config
 from app.connectors.base import Connector
 from app.connectors.registry import build_connectors
-from app.database.engine import session_scope, upgrade_to_head
-from app.services.logging_setup import setup_logging
-from app.services.referential import Preferences, get_preferences, seed_default_indices
+from app.database.engine import session_scope
+from app.services.referential import Preferences, get_preferences
 
 
 @st.cache_resource(show_spinner=False)
 def _bootstrap(db_path: str) -> bool:
-    """Démarrage : journaux, migrations, indices par défaut. Aucun appel réseau."""
-    config = get_config()
-    setup_logging(config.log_dir, config.secret_values())
-    upgrade_to_head(config.db_path)
-    with session_scope(config.db_path) as session:
-        seed_default_indices(session)
+    bootstrap(get_config())
     return True
 
 

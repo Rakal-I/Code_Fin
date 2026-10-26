@@ -14,7 +14,7 @@ from app.models.entities import Instrument
 from app.models.enums import VALUED_STATUSES, Applicability, DataField, DataStatus
 from app.services.market_data import CurrentValue, current_values, price_history
 from app.services.referential import Preferences
-from app.ui import theme
+from app.ui import formatting as fmt
 
 COMPUTED_SOURCE = "Calcul Ancora"
 
@@ -31,16 +31,16 @@ def format_value(cv: CurrentValue, masked: bool = False) -> str:
     if not cv.has_value or p is None:
         return cv.status.label
     if cv.field == DataField.TER:
-        return theme.pct(p.value_num, signed=False)
+        return fmt.pct(p.value_num, signed=False)
     if cv.field in (DataField.ANALYSTS, DataField.DIVIDEND_ANALYSTS):
-        return theme.number(p.value_num, 0)
+        return fmt.number(p.value_num, 0)
     if cv.field == DataField.AUM:
-        return f"{theme.number(p.value_num / 1e6, 0)} M{theme.symbol(p.currency or '')}"
+        return f"{fmt.number(p.value_num / 1e6, 0)} M{fmt.symbol(p.currency or '')}"
     if p.value_date is not None:
-        return theme.day(p.value_date)
+        return fmt.day(p.value_date)
     if p.value_text is not None:
         return p.value_text
-    return theme.money(p.value_num, p.currency or "", masked=False)
+    return fmt.money(p.value_num, p.currency or "", masked=False)
 
 
 @dataclass
@@ -73,8 +73,8 @@ def market_frame(rows: list[MarketRow]) -> pd.DataFrame:
             "Type": r.instrument.type.label,
             "Cours": r.price.value_num,
             "Devise": (p.currency if p and p.currency else r.instrument.currency),
-            "Date": theme.day(p.reference_date) if p and r.price.has_value else "—",
-            "Statut": theme.status(r.price.status),
+            "Date": fmt.day(p.reference_date) if p and r.price.has_value else "—",
+            "Statut": fmt.status(r.price.status),
         }
         for label in PERIODS:
             record[label] = r.perf[label]
@@ -99,10 +99,10 @@ def fundamentals_sections(session: Session, instrument: Instrument, prefs: Prefe
             "Donnée": label,
             "Exercice": str(year or (p.fiscal_year if p and p.fiscal_year else "")) or "—",
             "Valeur": format_value(cv),
-            "Statut": theme.status(cv.status),
+            "Statut": fmt.status(cv.status),
             "Source": p.source if p else "—",
-            "Date de référence": theme.day(p.reference_date) if p else "—",
-            "Collecte": theme.day(p.collected_at) if p else "—",
+            "Date de référence": fmt.day(p.reference_date) if p else "—",
+            "Collecte": fmt.day(p.collected_at) if p else "—",
             "Remarque": (p.note or "") if p else "",
         }
 
@@ -140,8 +140,8 @@ def fundamentals_sections(session: Session, instrument: Instrument, prefs: Prefe
             pot = potential(target.value_num, price.value_num)
         rows.append({
             "Donnée": "Potentiel", "Exercice": "—",
-            "Valeur": theme.pct(pot, na=DataStatus.NON_DISPONIBLE.label),
-            "Statut": theme.status(DataStatus.CALCULEE if pot is not None else DataStatus.NON_DISPONIBLE),
+            "Valeur": fmt.pct(pot, na=DataStatus.NON_DISPONIBLE.label),
+            "Statut": fmt.status(DataStatus.CALCULEE if pot is not None else DataStatus.NON_DISPONIBLE),
             "Source": COMPUTED_SOURCE if pot is not None else "—", "Date de référence": "—", "Collecte": "—",
             "Remarque": "(Objectif moyen / cours actuel − 1) × 100",
         })

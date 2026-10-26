@@ -285,3 +285,8 @@ with tab_settings:
                 f"- Base de données : `{cfg.db_path}`\n"
                 f"- Sauvegardes : `{cfg.backup_dir}`\n"
                 f"- Journaux : `{cfg.log_dir}`")
+
+    st.subheader("Version téléphone")
+    theme.note("Une interface simplifiée pour consulter votre patrimoine sur iPhone. Lancez-la sur cet ordinateur "
+               "avec `python -m app.mobile`, puis rendez-la accessible à votre téléphone de façon privée avec "
+               "`tailscale serve --bg 8502`. Dans Safari : Partager › Sur l'écran d'accueil. Détails dans le README.")

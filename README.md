@@ -12,6 +12,14 @@ un patrimoine financier réparti entre plusieurs enveloppes
 (PEA, assurance-vie, PER, CTO…) et plusieurs types d'actifs
 (actions, ETF, OPCVM / SICAV / FCP, unités de compte, indices).
 
+Deux interfaces partagent la même base et les mêmes règles de calcul :
+
+| | 💻 Ordinateur | 📱 Téléphone |
+|---|---|---|
+| Rôle | Tout : consultation, saisie, administration, sauvegardes | Consultation, simple et rapide |
+| Technologie | Streamlit | Web-app au style iOS, installable sur l'écran d'accueil |
+| Lancement | `streamlit run streamlit_app.py` | `python -m app.mobile` |
+
 > ⚠️ **Usage strictement personnel.** Cette application n'est pas un outil
 > de conseil en investissement et ne formule aucune recommandation d'achat
 > ou de vente.
@@ -30,14 +38,15 @@ un patrimoine financier réparti entre plusieurs enveloppes
 4. [Qualité des données](#-qualité-des-données)
 5. [Stack technique et architecture](#-stack-technique-et-architecture)
 6. [Installation](#-installation)
-7. [Structure du dépôt](#-structure-du-dépôt)
-8. [Statistiques du code](#-statistiques-du-code)
-9. [Derniers changements](#-derniers-changements)
-10. [Sources de données et limitations](#-sources-de-données-et-limitations)
-11. [Sécurité et confidentialité](#-sécurité-et-confidentialité)
-12. [Mise à jour automatique de ce README](#-mise-à-jour-automatique-de-ce-readme)
-13. [Identité visuelle](#-identité-visuelle)
-14. [Documentation](#-documentation)
+7. [Version téléphone](#-version-téléphone)
+8. [Structure du dépôt](#-structure-du-dépôt)
+9. [Statistiques du code](#-statistiques-du-code)
+10. [Derniers changements](#-derniers-changements)
+11. [Sources de données et limitations](#-sources-de-données-et-limitations)
+12. [Sécurité et confidentialité](#-sécurité-et-confidentialité)
+13. [Mise à jour automatique de ce README](#-mise-à-jour-automatique-de-ce-readme)
+14. [Identité visuelle](#-identité-visuelle)
+15. [Documentation](#-documentation)
 
 ---
 
@@ -52,9 +61,10 @@ Calculé à partir des cases cochées dans [`docs/ROADMAP.md`](docs/ROADMAP.md).
 | Critères de recette | `██████████` 100 % | 13/13 |
 | Version 2 — Nouveaux actifs | `░░░░░░░░░░` 0 % | 0/3 |
 | Version 3 — Imports | `░░░░░░░░░░` 0 % | 0/2 |
-| Version 4 — Mobilité | `░░░░░░░░░░` 0 % | 0/3 |
+| Version 4 — Mobilité | `███░░░░░░░` 33 % | 1/3 |
+| Application iOS native (App Store) | `░░░░░░░░░░` 0 % | 0/6 |
 | Version 5 — Assistant | `░░░░░░░░░░` 0 % | 0/2 |
-| **Total** | `████████░░` 75 % | **30/40** |
+| **Total** | `███████░░░` 67 % | **31/46** |
 <!-- AUTO:PROGRESS:END -->
 
 ---
@@ -175,10 +185,13 @@ libellé du statut est toujours affiché.
 ## 🏗️ Stack technique et architecture
 
 **Technologies :** Python 3.11+ · Streamlit · SQLite · SQLAlchemy · Alembic ·
-Pandas · Pydantic · Plotly · yfinance.
+Pandas · Pydantic · Plotly · yfinance · FastAPI (version téléphone).
 
 Le point d'entrée est [`streamlit_app.py`](streamlit_app.py), à la racine. Les dossiers de
 l'architecture cible sont regroupés dans le paquet `app/` ; `tests/` et `migrations/` sont à la racine.
+La version téléphone vit dans `app/mobile/` : une API JSON (FastAPI) qui réutilise les services,
+et une web-app statique (HTML, CSS, JavaScript sans dépendance) dans `app/mobile/static/`.
+La base SQLite est en mode WAL : les deux interfaces la lisent pendant qu'une actualisation écrit.
 
 État de l'architecture cible (§19 du cahier des charges), recalculé à chaque push :
 
@@ -244,6 +257,41 @@ pip install -r requirements-dev.txt
 ruff check .
 pytest            # dont tests/test_recette.py : les 13 critères de recette
 ```
+
+---
+
+## 📱 Version téléphone
+
+Une interface simplifiée, pensée comme une app iPhone : grands titres, listes groupées,
+barre d'onglets, mode sombre automatique, graphique de cours à parcourir du doigt.
+
+| Onglet | Contenu |
+|---|---|
+| **Patrimoine** | Valorisation totale, plus-value latente, anneau de répartition (enveloppes ou types d'actifs), positions |
+| **Marchés** | Instruments suivis, détenus ou indices, cours et performance sur la période choisie ; fiche détaillée |
+| **Revenus** | Revenus des 12 derniers mois, histogramme mensuel, derniers versements |
+| **Réglages** | Masquer les montants, actualiser les données, qualité des données |
+
+La saisie et l'administration restent sur l'ordinateur, volontairement : le téléphone sert à consulter.
+
+**Lancer** (sur l'ordinateur qui héberge Ancora) :
+
+```bash
+python -m app.mobile          # http://127.0.0.1:8502
+```
+
+**Y accéder depuis l'iPhone, en restant privé** (recommandé : [Tailscale](https://tailscale.com), gratuit
+pour un usage personnel) :
+
+1. Installez Tailscale sur l'ordinateur et sur l'iPhone, avec le même compte.
+2. Sur l'ordinateur : `tailscale serve --bg 8502` (la commande affiche une adresse
+   `https://<ordinateur>.<réseau>.ts.net`, accessible uniquement depuis vos appareils).
+3. Sur l'iPhone, ouvrez cette adresse dans Safari, puis **Partager › Sur l'écran d'accueil** :
+   Ancora s'ouvre ensuite comme une app, avec son icône.
+
+> ⚠️ Le serveur n'écoute que sur l'ordinateur (127.0.0.1) et n'a pas d'authentification propre :
+> passez par Tailscale ou Cloudflare Tunnel + Access plutôt que d'ouvrir le port sur votre réseau.
+> Variables : `ANCORA_MOBILE_HOST`, `ANCORA_MOBILE_PORT`.
 
 ---
 
@@ -347,14 +395,14 @@ Code_Fin/
 <!-- AUTO:STATS:START -->
 | Langage | Fichiers | Lignes (hors vides) |
 |---|---|---|
-| Python | 50 | 4607 |
+| Python | 50 | 4573 |
 | Autres | 5 | 45 |
-| Markdown | 3 | 715 |
-| TOML | 3 | 43 |
-| Texte | 2 | 14 |
+| Markdown | 3 | 757 |
+| TOML | 3 | 44 |
+| Texte | 2 | 18 |
 | YAML | 2 | 71 |
 | INI | 1 | 29 |
-| **Total** | **66** | **5524** |
+| **Total** | **66** | **5537** |
 
 **Tests automatisés détectés :** 58
 
@@ -369,7 +417,7 @@ Code_Fin/
 | Pydantic | `pydantic` | ✅ |
 | Plotly | `plotly` | ✅ |
 | yfinance | `yfinance` | ✅ |
-| Finnhub | `finnhub-python` | ⬜ |
+| FastAPI (téléphone) | `fastapi` | ✅ |
 <!-- AUTO:STATS:END -->
 
 ---

@@ -5,8 +5,6 @@ jamais remplacée par 0.
 """
 from __future__ import annotations
 
-import math
-from datetime import date, datetime
 from typing import Iterable
 
 import pandas as pd
@@ -15,8 +13,8 @@ import streamlit as st
 from streamlit.errors import StreamlitPageNotFoundError
 
 from app.config.settings import ROOT
-from app.domain.quality import badge
-from app.models.enums import DataStatus
+from app.ui.formatting import MASK, day, money, number, pct, qty, status, symbol  # noqa: F401
+from app.ui.formatting import missing as _missing
 
 LOGO = ROOT / "assets" / "logo.svg"
 ICON = ROOT / "assets" / "icon.svg"
@@ -28,7 +26,6 @@ GAIN = "#1E7F3C"
 LOSS = "#C4170C"
 # Dégradé de gris de l'anneau du logo, réutilisé pour les répartitions.
 RING = ["#000000", "#48484A", "#7C7C80", "#A1A1A6", "#C7C7CC", "#D9D9DE", "#E8E8ED"]
-MASK = "••••"
 
 _CSS = """
 <style>
@@ -92,62 +89,6 @@ def perf_strip(perf: dict[str, float | None]) -> None:
 
 def note(text: str) -> None:
     st.markdown(f'<p class="anc-note">{text}</p>', unsafe_allow_html=True)
-
-
-# --------------------------------------------------------------------------
-# Formats
-# --------------------------------------------------------------------------
-
-def _missing(value) -> bool:
-    return value is None or (isinstance(value, float) and math.isnan(value))
-
-
-def number(value: float | None, decimals: int = 2, na: str = "—") -> str:
-    if _missing(value):
-        return na
-    text = f"{value:,.{decimals}f}"
-    return text.replace(",", " ").replace(".", ",")
-
-
-def money(value: float | None, currency: str = "EUR", masked: bool = False, decimals: int = 2,
-          na: str = "—", signed: bool = False) -> str:
-    if _missing(value):
-        return na
-    if masked:
-        return f"{MASK} {symbol(currency)}"
-    sign = "+" if signed and value > 0 else ""
-    return f"{sign}{number(value, decimals)} {symbol(currency)}"
-
-
-def symbol(currency: str) -> str:
-    return {"EUR": "€", "USD": "$", "GBP": "£", "CHF": "CHF", "JPY": "¥"}.get(currency, currency)
-
-
-def pct(value: float | None, decimals: int = 2, na: str = "N/A", signed: bool = True) -> str:
-    if _missing(value):
-        return na
-    sign = "+" if signed and value > 0 else ""
-    return f"{sign}{number(value, decimals)} %"
-
-
-def qty(value: float | None, masked: bool = False) -> str:
-    if _missing(value):
-        return "—"
-    if masked:
-        return MASK
-    return number(value, 0 if float(value).is_integer() else 4)
-
-
-def day(value: date | datetime | None) -> str:
-    if value is None:
-        return "—"
-    if isinstance(value, datetime):
-        return value.strftime("%d/%m/%Y %H:%M")
-    return value.strftime("%d/%m/%Y")
-
-
-def status(value: DataStatus) -> str:
-    return badge(value)
 
 
 def gain_color(value) -> str:

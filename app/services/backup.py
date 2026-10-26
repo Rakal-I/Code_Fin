@@ -80,6 +80,8 @@ def create_backup(db_path: Path, backup_dir: Path, kind: str = "manuelle", comme
     destination = sqlite3.connect(target)
     try:
         source.backup(destination)
+        # Fichier autonome : pas de journal WAL à côté de la sauvegarde.
+        destination.execute("PRAGMA journal_mode=DELETE")
     finally:
         destination.close()
         source.close()

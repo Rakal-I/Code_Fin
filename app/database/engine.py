@@ -25,6 +25,9 @@ def get_engine(db_path: Path) -> Engine:
         def _sqlite_pragmas(dbapi_connection, _record):
             cursor = dbapi_connection.cursor()
             cursor.execute("PRAGMA foreign_keys=ON")
+            # WAL : les interfaces ordinateur et téléphone lisent pendant qu'une actualisation écrit.
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA busy_timeout=10000")
             cursor.close()
 
         _engines[db_path] = engine

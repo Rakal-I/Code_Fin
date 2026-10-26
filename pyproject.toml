@@ -10,6 +10,7 @@ filterwarnings = [
     # Avertissements internes des bibliothèques (yfinance, pandas 3), sans effet sur Ancora.
     "ignore::DeprecationWarning",
     "ignore::FutureWarning",
+    "ignore:Using `httpx` with `starlette.testclient`",
 ]
 
 [tool.ruff]

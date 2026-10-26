@@ -54,9 +54,18 @@ Référence : [cahier des charges](cahier_des_charges.md), §22 et §23.
 
 ## Version 4 — Mobilité
 
-- [ ] Tablette
-- [ ] Smartphone
+- [x] Smartphone : web-app installable sur l'écran d'accueil (consultation, actualisation, masquage)
+- [ ] Tablette : mise en page dédiée (la version téléphone fonctionne, centrée)
 - [ ] Synchronisation cloud
+
+## Application iOS native (App Store)
+
+- [ ] Choisir la technologie : SwiftUI (natif) ou multiplateforme (Flutter, React Native)
+- [ ] Porter les règles de calcul (les tests actuels servent de cahier de vérification)
+- [ ] Stockage local sur l'iPhone, sauvegarde iCloud facultative
+- [ ] Fournisseur de cours sous licence et petit serveur intermédiaire pour protéger sa clé
+- [ ] Compte Apple Developer, politique de confidentialité, fiche « App Privacy »
+- [ ] Bêta TestFlight, puis soumission à l'App Store
 
 ## Version 5 — Assistant
 

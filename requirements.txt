@@ -7,3 +7,6 @@ pydantic>=2.7
 plotly>=5.22
 yfinance>=0.2.50
 requests>=2.32
+# Interface téléphone
+fastapi>=0.115
+uvicorn>=0.30
