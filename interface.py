@@ -12,7 +12,7 @@ import streamlit as st
 from app.services import market_data, referential
 from app.ui import context, login, theme
 
-st.set_page_config(page_title="Ancora", page_icon=str(theme.ICON), layout="wide",
+st.set_page_config(page_title="Ancora", page_icon=str(theme.FAVICON), layout="wide",
                    initial_sidebar_state="expanded")
 theme.apply()
 st.logo(str(theme.LOGO), size="large", icon_image=str(theme.ICON))

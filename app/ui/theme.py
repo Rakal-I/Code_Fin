@@ -22,6 +22,7 @@ from app.ui.formatting import missing as _missing
 
 LOGO = ROOT / "assets" / "logo.svg"
 ICON = ROOT / "assets" / "icon.svg"
+FAVICON = ROOT / "assets" / "icon-512.png"  # onglet du navigateur (PNG : pris en charge partout)
 
 INK = "#1D1D1F"
 MUTED = "#6E6E73"

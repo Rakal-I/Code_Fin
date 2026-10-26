@@ -648,7 +648,10 @@ enveloppes. Sur fond sombre, l'icône du logo s'inverse (fond blanc, anneau noir
 |---|---|
 | [`assets/logo.svg`](assets/logo.svg) | Logo complet, fond clair |
 | [`assets/logo-dark.svg`](assets/logo-dark.svg) | Logo complet, fond sombre (icône inversée) |
-| [`assets/icon.svg`](assets/icon.svg) | Icône seule (favicon Streamlit, avatar) |
+| [`assets/icon.svg`](assets/icon.svg) | Icône seule, coins arrondis (avatar, `favicon.svg`) |
+| [`assets/icon-512.png`](assets/icon-512.png) | Onglet du navigateur de l'interface ordinateur |
+| [`assets/social-preview.png`](assets/social-preview.png) | Aperçu de partage du dépôt (1280×640) : à téléverser dans *Settings › Social preview* |
+| [`app/mobile/static/icons/`](app/mobile/static/icons/) | Icônes de la web-app : favicon 16 à 64 px, écran d'accueil iPhone (180 px), Android 192 / 512 px et « maskable » |
 
 | Rôle | Valeur |
 |---|---|
@@ -671,7 +674,9 @@ barres flottantes. En mode sombre, le verre devient fumé.
 | Gains / pertes | Seule exception colorée : vert et rouge, pour la lisibilité |
 
 Les SVG sont produits par [`scripts/generate_logo.py`](scripts/generate_logo.py)
-(nécessite `pip install fonttools` et la police Inter Display).
+(nécessite `pip install fonttools` et la police Inter Display), puis toutes les icônes (PNG, `.ico`,
+aperçu de partage) par [`scripts/generate_icons.py`](scripts/generate_icons.py)
+(nécessite `pip install playwright pillow` et un Chromium).
 
 ---
 
