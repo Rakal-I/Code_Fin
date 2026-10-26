@@ -25,7 +25,7 @@ Deux interfaces partagent la même base et les mêmes règles de calcul :
 > ou de vente.
 
 <!-- AUTO:META:START -->
-> 🔄 **Dernière mise à jour :** 26/10/2026 13:41 (heure de Paris) · commit `44300b3` · 12 commits au total
+> 🔄 **Dernière mise à jour :** 26/10/2026 16:57 (heure de Paris) · commit `b4a60f3` · 13 commits au total
 <!-- AUTO:META:END -->
 
 ---
@@ -367,6 +367,9 @@ le trousseau iCloud (Face ID). Chaque session n'ouvre que la base du compte conn
 <!-- AUTO:STRUCTURE:START -->
 ```text
 Code_Fin/
+├── .devcontainer/
+│   ├── devcontainer.json
+│   └── start.sh
 ├── .github/
 │   └── workflows/
 │       ├── tests.yml
@@ -476,8 +479,7 @@ Code_Fin/
 ├── interface.py
 ├── pyproject.toml
 ├── README.md
-├── requirements-dev.txt
-└── … (+2 éléments)
+└── … (+3 éléments)
 ```
 <!-- AUTO:STRUCTURE:END -->
 
@@ -490,15 +492,17 @@ Code_Fin/
 |---|---|---|
 | Python | 73 | 7269 |
 | Autres | 10 | 61 |
-| Markdown | 3 | 833 |
+| Markdown | 3 | 848 |
 | TOML | 3 | 58 |
 | Texte | 2 | 23 |
 | YAML | 2 | 71 |
 | CSS | 1 | 335 |
 | HTML | 1 | 58 |
 | INI | 1 | 29 |
+| JSON | 1 | 12 |
 | JavaScript | 1 | 669 |
-| **Total** | **97** | **9406** |
+| Shell | 1 | 10 |
+| **Total** | **99** | **9443** |
 
 **Tests automatisés détectés :** 104
 
@@ -525,6 +529,7 @@ Code_Fin/
 <!-- AUTO:COMMITS:START -->
 | Commit | Date | Auteur | Message |
 |---|---|---|---|
+| `b4a60f3` | 26/10/2026 | Claude | Ajoute la configuration GitHub Codespaces pour héberger Ancora |
 | `44300b3` | 26/10/2026 | Claude | Ajoute la connexion Google et Apple, et chiffre les données de chaque compte |
 | `f887633` | 26/10/2026 | Claude | Ajoute une connexion obligatoire sur l'ordinateur et le téléphone |
 | `b0679e5` | 26/10/2026 | Claude | Passe les deux interfaces au style « Liquid Glass » et aligne les graphiques sur le logo |
@@ -534,7 +539,6 @@ Code_Fin/
 | `3ec2ab1` | 26/10/2026 | Claude | Remplace l'ancre par un logo abstrait « sommet » |
 | `37b926f` | 26/10/2026 | Claude | Renomme l'application en « Ancora » avec un logo en forme d'ancre |
 | `0a47799` | 26/10/2026 | Claude | Refait le logo Vigie dans un style minimaliste façon Apple |
-| `6be385f` | 26/10/2026 | Claude | Nomme l'application « Vigie » et ajoute son logo |
 <!-- AUTO:COMMITS:END -->
 
 ---
