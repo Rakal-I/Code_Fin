@@ -118,7 +118,6 @@ def test_connexion_ordinateur(app_config):
     at = _main().run()
     assert not at.exception
     assert any("Créer mon compte" in b.label for b in at.button)
-    assert any("Continuer avec Apple" in m.value and "Continuer avec Google" in m.value for m in at.markdown)
     assert not any("Tableau de bord" in t.value for t in at.title)  # aucune donnée avant connexion
     at.text_input[0].input(USER)
     at.text_input[1].input(PASSWORD)
@@ -146,35 +145,3 @@ def test_connexion_ordinateur(app_config):
     at.text_input[2].input("Conjoint2026")
     _button(at, "Créer mon compte").click().run()
     assert not at.exception
-
-
-def test_premiere_connexion_google_sur_l_ordinateur(app_config):
-    """Retour de Google sans compte associé : création d'un compte Ancora lié à cette identité."""
-    from app.services import auth, workspace
-
-    at = _main()
-    at.session_state["auth_pending"] = {"provider": "google", "subject": "g-42", "email": "camille@exemple.fr",
-                                        "name": "Camille"}
-    at.run()
-    assert any("Presque terminé" in m.value for m in at.markdown)
-    _button(at, "Créer mon compte Ancora").click().run()
-    assert not at.exception
-    with workspace.directory(app_config) as d:
-        identity = auth.find_identity(d, "google", "g-42")
-        assert identity.account_id == at.session_state[ACCOUNT_KEY]
-        assert identity.account.name == "Camille" and identity.account.password_hash is None
-
-
-def test_association_google_a_un_compte_existant(app_config):
-    from app.services import auth, workspace
-
-    ws = make_account(app_config)
-    at = _main()
-    at.session_state["auth_pending"] = {"provider": "google", "subject": "g-7", "email": None, "name": None}
-    at.run()
-    at.text_input[0].input(USER)
-    at.text_input[1].input(PASSWORD)
-    _button(at, "Associer Google").click().run()
-    assert not at.exception and at.session_state[ACCOUNT_KEY] == ws.account_id
-    with workspace.directory(app_config) as d:
-        assert auth.find_identity(d, "google", "g-7").account_id == ws.account_id

@@ -1,4 +1,4 @@
-"""Annuaire des comptes : identités, sessions et clés enveloppées.
+"""Annuaire des comptes : sessions, clés d'accès (Face ID / Touch ID) et clés enveloppées.
 
 Base distincte des données patrimoniales, chiffrée par la clé maître. Chaque compte a ses
 données dans sa propre base, chiffrée par sa propre clé.
@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, LargeBinary, String, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Integer, LargeBinary, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from app.models.entities import utcnow
@@ -20,7 +20,7 @@ class DirectoryBase(DeclarativeBase):
 
 
 class Account(DirectoryBase):
-    """Un compte Ancora. Mot de passe facultatif (connexion Google / Apple), jamais stocké en clair."""
+    """Un compte Ancora. Le mot de passe n'est jamais stocké en clair, seulement son empreinte."""
 
     __tablename__ = "accounts"
 
@@ -37,23 +37,43 @@ class Account(DirectoryBase):
     password_changed_at: Mapped[datetime | None] = mapped_column(DateTime)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime)
 
-    identities: Mapped[list[Identity]] = relationship(back_populates="account", cascade="all, delete-orphan")
+    passkeys: Mapped[list[Passkey]] = relationship(back_populates="account", cascade="all, delete-orphan")
 
 
-class Identity(DirectoryBase):
-    """Compte Google ou Apple associé : identifié par l'identifiant stable du fournisseur (« sub »)."""
+class Passkey(DirectoryBase):
+    """Clé d'accès (WebAuthn) : Face ID, Touch ID, Windows Hello…
 
-    __tablename__ = "identities"
-    __table_args__ = (UniqueConstraint("provider", "subject"),)
+    La clé privée reste dans l'appareil (trousseau iCloud sur iPhone) ; Ancora ne garde que la clé
+    publique, qui ne permet pas de se connecter à elle seule.
+    """
+
+    __tablename__ = "passkeys"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"))
-    provider: Mapped[str] = mapped_column(String(20))
-    subject: Mapped[str] = mapped_column(String(255))
-    email: Mapped[str | None] = mapped_column(String(254))
+    credential_id: Mapped[bytes] = mapped_column(LargeBinary, unique=True)
+    public_key: Mapped[bytes] = mapped_column(LargeBinary)
+    sign_count: Mapped[int] = mapped_column(Integer, default=0)
+    rp_id: Mapped[str] = mapped_column(String(255))          # adresse du site pour laquelle elle a été créée
+    name: Mapped[str] = mapped_column(String(120))           # « iPhone », « Mac »…
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime)
 
-    account: Mapped[Account] = relationship(back_populates="identities")
+    account: Mapped[Account] = relationship(back_populates="passkeys")
+
+
+class WebAuthnChallenge(DirectoryBase):
+    """Défi aléatoire d'une cérémonie Face ID en cours (usage unique, 5 minutes)."""
+
+    __tablename__ = "webauthn_challenges"
+
+    id_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    challenge: Mapped[bytes] = mapped_column(LargeBinary)
+    purpose: Mapped[str] = mapped_column(String(12))        # « connexion » ou « ajout »
+    account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"))
+    rp_id: Mapped[str] = mapped_column(String(255))
+    origin: Mapped[str] = mapped_column(String(500))
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
 
 
 class AuthSession(DirectoryBase):
@@ -71,40 +91,17 @@ class AuthSession(DirectoryBase):
 
 
 class LoginTicket(DirectoryBase):
-    """Passage de relais après Google / Apple vers l'interface ordinateur (usage unique, 2 minutes).
-
-    Sans compte associé, le ticket porte l'identité en attente : l'utilisateur choisit alors de
-    créer un compte ou de l'associer à son compte existant.
-    """
+    """Passage de relais après Face ID / Touch ID vers l'interface ordinateur (usage unique, 2 minutes)."""
 
     __tablename__ = "login_tickets"
 
     token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
-    account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"))
-    provider: Mapped[str | None] = mapped_column(String(20))
-    subject: Mapped[str | None] = mapped_column(String(255))
-    email: Mapped[str | None] = mapped_column(String(254))
-    name: Mapped[str | None] = mapped_column(String(120))
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"))
     expires_at: Mapped[datetime] = mapped_column(DateTime)
 
 
-class OAuthRequest(DirectoryBase):
-    """Demande de connexion en cours (anti-rejeu : state, nonce, vérificateur PKCE). Usage unique, 10 min."""
-
-    __tablename__ = "oauth_requests"
-
-    state_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
-    provider: Mapped[str] = mapped_column(String(20))
-    client: Mapped[str] = mapped_column(String(10))          # « desktop » ou « mobile »
-    nonce: Mapped[str] = mapped_column(String(64))
-    verifier: Mapped[str] = mapped_column(String(128))
-    redirect_uri: Mapped[str] = mapped_column(String(500))
-    link_account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
-
-
 class LinkIntent(DirectoryBase):
-    """Association d'un compte Google / Apple demandée depuis les Paramètres (usage unique, 5 min)."""
+    """Ajout d'une clé d'accès demandé depuis l'interface ordinateur connectée (usage unique, 5 min)."""
 
     __tablename__ = "link_intents"
 

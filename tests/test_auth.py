@@ -1,9 +1,9 @@
-"""Comptes : empreintes, blocage après échecs, identités Google / Apple, sessions, jetons à usage unique."""
+"""Comptes : empreintes, blocage après échecs, sessions, jetons à usage unique."""
 from datetime import timedelta
 
 import pytest
 
-from app.models.directory import Account, AuthSession, LoginTicket, OAuthRequest
+from app.models.directory import Account, AuthSession, LoginTicket
 from app.models.entities import utcnow
 from app.services import auth, workspace
 from tests.conftest import PASSWORD, USER
@@ -77,46 +77,14 @@ def test_sessions_par_compte(app_config, directory):
     assert auth.resolve_session(directory, expired) is None
 
 
-def test_compte_google_puis_mot_de_passe(app_config, directory):
-    account = workspace.create_account(app_config, directory, name="Camille", email="camille@exemple.fr")
-    auth.link_identity(directory, account, "google", "sub-123", "camille@exemple.fr")
-    assert auth.find_identity(directory, "google", "sub-123").account_id == account.id
-    assert auth.find_identity(directory, "apple", "sub-123") is None
-    assert not auth.authenticate(directory, "camille", PASSWORD).ok
-    with pytest.raises(auth.AuthError, match="seul moyen"):
-        auth.unlink_identity(directory, account, "google")
-    auth.set_password(directory, account, "camille", PASSWORD, PASSWORD)
-    assert auth.authenticate(directory, "camille", PASSWORD).ok
-    auth.unlink_identity(directory, account, "google")
-    assert auth.find_identity(directory, "google", "sub-123") is None
-
-
-def test_identite_deja_associee_ailleurs(app_config, directory):
-    alice = make(app_config, directory)
-    bob = make(app_config, directory, username="bob", password="Bob2026xx")
-    auth.link_identity(directory, alice, "apple", "apple-1", None)
-    with pytest.raises(auth.AuthError, match="autre compte"):
-        auth.link_identity(directory, bob, "apple", "apple-1", None)
-    with pytest.raises(auth.AuthError, match="déjà associé"):
-        auth.link_identity(directory, alice, "apple", "apple-2", None)
-
-
 def test_tickets_et_demandes_a_usage_unique(app_config, directory):
     account = make(app_config, directory)
-    ticket = auth.issue_ticket(directory, account_id=account.id)
+    ticket = auth.issue_ticket(directory, account.id)
     assert auth.redeem_ticket(directory, ticket).account_id == account.id
     assert auth.redeem_ticket(directory, ticket) is None
-    old = auth.issue_ticket(directory, account_id=account.id)
+    old = auth.issue_ticket(directory, account.id)
     directory.query(LoginTicket).update({LoginTicket.expires_at: utcnow() - timedelta(seconds=1)})
     assert auth.redeem_ticket(directory, old) is None
-
-    pending = auth.start_oauth(directory, "google", "mobile", "https://exemple.fr/connexion/google/retour")
-    record = auth.consume_oauth(directory, pending.state)
-    assert record.nonce == pending.nonce and record.verifier == pending.verifier
-    assert auth.consume_oauth(directory, pending.state) is None  # rejeu refusé
-    stale = auth.start_oauth(directory, "apple", "mobile", "https://exemple.fr/connexion/apple/retour")
-    directory.query(OAuthRequest).update({OAuthRequest.created_at: utcnow() - timedelta(minutes=11)})
-    assert auth.consume_oauth(directory, stale.state) is None
 
     intent = auth.create_link_intent(directory, account.id)
     assert auth.consume_link_intent(directory, intent) == account.id

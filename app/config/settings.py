@@ -1,8 +1,8 @@
 """Configuration de l'application.
 
 Les chemins et paramètres techniques viennent des variables d'environnement.
-Les clés API et identifiants Google / Apple viennent de l'environnement ou de
-``config/secrets.toml``, qui n'est jamais versionné (cahier des charges §18).
+Les clés API viennent de l'environnement ou de ``config/secrets.toml``, qui n'est
+jamais versionné (cahier des charges §18).
 """
 from __future__ import annotations
 
@@ -19,18 +19,6 @@ SECRETS_FILE = ROOT / "config" / "secrets.toml"
 CONSOLIDATION_CURRENCY = "EUR"
 
 
-class GoogleConfig(BaseModel):
-    client_id: str
-    client_secret: str
-
-
-class AppleConfig(BaseModel):
-    client_id: str          # identifiant de service (Services ID), ex. « fr.exemple.ancora.web »
-    team_id: str
-    key_id: str
-    private_key: str        # contenu du fichier .p8 « Sign in with Apple »
-
-
 class AppConfig(BaseModel):
     data_dir: Path = Field(default=ROOT / "data")
     backup_dir: Path = Field(default=ROOT / "backups")
@@ -40,8 +28,6 @@ class AppConfig(BaseModel):
     request_timeout: float = 15.0
     finnhub_api_key: str | None = None
     sec_user_agent: str | None = None
-    google: GoogleConfig | None = None
-    apple: AppleConfig | None = None
 
     @property
     def directory_path(self) -> Path:
@@ -60,10 +46,7 @@ class AppConfig(BaseModel):
 
     def secret_values(self) -> list[str]:
         """Valeurs à masquer dans les journaux."""
-        values = [self.finnhub_api_key]
-        if self.google:
-            values.append(self.google.client_secret)
-        return [v for v in values if v]
+        return [v for v in (self.finnhub_api_key,) if v]
 
 
 def _read_secrets() -> dict:
@@ -73,27 +56,11 @@ def _read_secrets() -> dict:
         return tomllib.load(handle)
 
 
-def _section(secrets: dict, name: str, fields: tuple[str, ...]) -> dict | None:
-    """Section [google] / [apple] du fichier de secrets, surchargée par ANCORA_GOOGLE_CLIENT_ID, etc."""
-    values = dict(secrets.get(name) or {})
-    for field in fields:
-        env = os.environ.get(f"ANCORA_{name.upper()}_{field.upper()}")
-        if env:
-            values[field] = env
-    path = values.pop("private_key_path", None) or os.environ.get(f"ANCORA_{name.upper()}_PRIVATE_KEY_PATH")
-    if path and not values.get("private_key"):
-        key_path = Path(path) if Path(path).is_absolute() else ROOT / path
-        values["private_key"] = key_path.read_text(encoding="utf-8") if key_path.exists() else ""
-    return values if all(values.get(f) for f in fields) else None
-
-
 def load_config() -> AppConfig:
     secrets = _read_secrets()
     values: dict = {
         "finnhub_api_key": os.environ.get("FINNHUB_API_KEY") or secrets.get("finnhub_api_key"),
         "sec_user_agent": os.environ.get("SEC_USER_AGENT") or secrets.get("sec_user_agent"),
-        "google": _section(secrets, "google", ("client_id", "client_secret")),
-        "apple": _section(secrets, "apple", ("client_id", "team_id", "key_id", "private_key")),
     }
     for env, key in (("ANCORA_DATA_DIR", "data_dir"), ("ANCORA_BACKUP_DIR", "backup_dir"),
                      ("ANCORA_LOG_DIR", "log_dir"), ("ANCORA_KEY_FILE", "key_file")):

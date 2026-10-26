@@ -45,7 +45,7 @@ Référence : [cahier des charges](cahier_des_charges.md), §22 et §23.
 
 - [x] Connexion obligatoire (ordinateur et téléphone)
 - [x] Plusieurs comptes, données séparées
-- [x] Connexion avec Google et Apple
+- [x] Connexion par Face ID / Touch ID (clés d'accès)
 - [x] Données de chaque compte chiffrées avec sa propre clé
 - [ ] Suppression d'un compte depuis l'interface
 

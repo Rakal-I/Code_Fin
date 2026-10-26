@@ -1,9 +1,9 @@
-"""Comptes Ancora : mot de passe, Google / Apple, sessions.
+"""Comptes Ancora : mot de passe, sessions, jetons.
 
 - Mot de passe : jamais stocké ; empreinte scrypt avec sel aléatoire, comparaison à temps constant.
 - Échecs : après 5 tentatives ratées, blocage de 1 minute, doublé à chaque nouvel échec (60 min au plus).
-- Google / Apple : le compte est reconnu par l'identifiant stable du fournisseur, jamais par l'adresse e-mail.
-- Jetons (sessions du téléphone, tickets, demandes de connexion) : la base n'en garde que l'empreinte SHA-256.
+- Face ID / Touch ID : voir app/services/passkeys.py.
+- Jetons (sessions du téléphone, tickets, ajout de clé d'accès) : la base n'en garde que l'empreinte SHA-256.
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from app.models.directory import Account, AuthSession, Identity, LinkIntent, LoginTicket, OAuthRequest
+from app.models.directory import Account, AuthSession, LinkIntent, LoginTicket
 from app.models.entities import utcnow
 from app.services import vault
 
@@ -30,10 +30,7 @@ MAX_FAILURES = 5
 MAX_LOCK_MINUTES = 60
 SESSION_DAYS = 30
 TICKET_MINUTES = 2
-OAUTH_MINUTES = 10
 LINK_MINUTES = 5
-
-PROVIDERS = {"google": "Google", "apple": "Apple"}
 
 _SCRYPT = {"n": 2**14, "r": 8, "p": 1}
 
@@ -172,14 +169,6 @@ def change_password(session: Session, account: Account, current: str, new: str, 
     _store_password(session, account, new, confirmation)
 
 
-def set_password(session: Session, account: Account, username: str, new: str, confirmation: str) -> None:
-    """Ajoute un identifiant et un mot de passe à un compte créé avec Google ou Apple."""
-    if account.password_hash is not None:
-        raise AuthError("Ce compte a déjà un mot de passe.")
-    account.username = _check_username(session, username)
-    _store_password(session, account, new, confirmation)
-
-
 def reset_password(session: Session, account: Account, new: str, confirmation: str) -> None:
     """Mot de passe oublié (script local) : les données du compte sont conservées."""
     _store_password(session, account, new, confirmation)
@@ -195,43 +184,6 @@ def _store_password(session: Session, account: Account, new: str, confirmation: 
     account.locked_until = None
     revoke_all_sessions(session, account.id)  # les téléphones devront se reconnecter
     log.info("Mot de passe modifié ; sessions révoquées.")
-
-
-# --------------------------------------------------------------------------
-# Identités Google / Apple
-# --------------------------------------------------------------------------
-
-def find_identity(session: Session, provider: str, subject: str) -> Identity | None:
-    return session.scalars(select(Identity).where(Identity.provider == provider,
-                                                  Identity.subject == subject)).first()
-
-
-def link_identity(session: Session, account: Account, provider: str, subject: str, email: str | None) -> Identity:
-    existing = find_identity(session, provider, subject)
-    if existing is not None:
-        if existing.account_id != account.id:
-            raise AuthError(f"Ce compte {PROVIDERS[provider]} est déjà associé à un autre compte Ancora.")
-        existing.email = email or existing.email
-        return existing
-    if any(i.provider == provider for i in account.identities):
-        raise AuthError(f"Un compte {PROVIDERS[provider]} est déjà associé : dissociez-le d'abord.")
-    identity = Identity(account=account, provider=provider, subject=subject, email=email)
-    session.add(identity)
-    if not account.email and email:
-        account.email = email
-    session.flush()
-    log.info("Identité %s associée au compte %s.", provider, account.uuid[:8])
-    return identity
-
-
-def unlink_identity(session: Session, account: Account, provider: str) -> None:
-    identity = next((i for i in account.identities if i.provider == provider), None)
-    if identity is None:
-        return
-    if account.password_hash is None and len(account.identities) == 1:
-        raise AuthError("C'est votre seul moyen de connexion : définissez d'abord un mot de passe.")
-    account.identities.remove(identity)
-    session.flush()
 
 
 # --------------------------------------------------------------------------
@@ -278,48 +230,15 @@ def active_sessions(session: Session, account_id: int, now: datetime | None = No
 
 
 # --------------------------------------------------------------------------
-# Connexion Google / Apple : demandes, tickets, associations
+# Tickets (ordinateur) et jetons d'ajout de clé d'accès
 # --------------------------------------------------------------------------
 
-@dataclass(frozen=True)
-class PendingOAuth:
-    state: str
-    nonce: str
-    verifier: str
-
-
-def start_oauth(session: Session, provider: str, client: str, redirect_uri: str,
-                link_account_id: int | None = None) -> PendingOAuth:
-    now = utcnow()
-    session.execute(delete(OAuthRequest).where(OAuthRequest.created_at < now - timedelta(minutes=OAUTH_MINUTES)))
-    pending = PendingOAuth(secrets.token_urlsafe(32), secrets.token_urlsafe(24), secrets.token_urlsafe(48))
-    session.add(OAuthRequest(state_hash=_token_hash(pending.state), provider=provider, client=client,
-                             nonce=pending.nonce, verifier=pending.verifier, redirect_uri=redirect_uri,
-                             link_account_id=link_account_id, created_at=now))
-    return pending
-
-
-def consume_oauth(session: Session, state: str | None) -> OAuthRequest | None:
-    """Demande correspondant au « state » reçu ; supprimée aussitôt (usage unique)."""
-    if not state:
-        return None
-    record = session.get(OAuthRequest, _token_hash(state))
-    if record is None:
-        return None
-    session.delete(record)
-    session.flush()
-    if record.created_at < utcnow() - timedelta(minutes=OAUTH_MINUTES):
-        return None
-    return record
-
-
-def issue_ticket(session: Session, *, account_id: int | None = None, provider: str | None = None,
-                 subject: str | None = None, email: str | None = None, name: str | None = None) -> str:
+def issue_ticket(session: Session, account_id: int) -> str:
+    """Ticket à usage unique remis à l'interface ordinateur après Face ID / Touch ID."""
     now = utcnow()
     session.execute(delete(LoginTicket).where(LoginTicket.expires_at < now))
     token = secrets.token_urlsafe(32)
-    session.add(LoginTicket(token_hash=_token_hash(token), account_id=account_id, provider=provider,
-                            subject=subject, email=email, name=(name or "")[:120] or None,
+    session.add(LoginTicket(token_hash=_token_hash(token), account_id=account_id,
                             expires_at=now + timedelta(minutes=TICKET_MINUTES)))
     return token
 
@@ -336,6 +255,9 @@ def redeem_ticket(session: Session, token: str | None) -> LoginTicket | None:
 
 
 def create_link_intent(session: Session, account_id: int) -> str:
+    """Jeton (5 minutes) autorisant l'ajout d'une clé d'accès au compte connecté sur l'ordinateur."""
+    now = utcnow()
+    session.execute(delete(LinkIntent).where(LinkIntent.expires_at < now))
     token = secrets.token_urlsafe(24)
     session.add(LinkIntent(token_hash=_token_hash(token), account_id=account_id,
                            expires_at=utcnow() + timedelta(minutes=LINK_MINUTES)))

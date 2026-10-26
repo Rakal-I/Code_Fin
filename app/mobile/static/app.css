@@ -346,21 +346,34 @@ body.locked { padding-bottom: 0; }
 @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
 .destructive { color: var(--loss) !important; font-weight: 600; }
 
-/* Continuer avec Apple / Google (chartes Apple et Google : noir/blanc, logo Google en couleurs) */
-.sso { display: flex; flex-direction: column; gap: 10px; }
-.sso a {
-  display: flex; align-items: center; justify-content: center; gap: 8px; height: 50px; border-radius: 14px;
-  font-size: 17px; font-weight: 600; letter-spacing: -.2px; text-decoration: none;
-  transition: transform .15s ease, opacity .15s;
+/* Face ID / Touch ID */
+.faceid-btn {
+  display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; height: 52px; border: 0;
+  border-radius: 14px; font: inherit; font-size: 17px; font-weight: 600; letter-spacing: -.2px;
+  background: #000; color: #fff; cursor: pointer; transition: transform .15s ease, opacity .15s;
 }
-.sso a:active { transform: scale(.97); opacity: .85; }
-.sso a svg { width: 19px; height: 19px; }
-.sso-apple { background: #000; color: #fff; }
-.sso-apple svg { margin-top: -3px; }
-.sso-google { background: #fff; color: #1F1F1F; border: 0.5px solid #DADCE0; }
-@media (prefers-color-scheme: dark) {
-  .sso-apple { background: #fff; color: #000; }
-  .sso-google { background: #131314; color: #E3E3E3; border-color: #8E918F; }
+.faceid-btn:active { transform: scale(.97); opacity: .85; }
+.faceid-btn:disabled { opacity: .5; }
+.faceid-btn svg { width: 22px; height: 22px; }
+@media (prefers-color-scheme: dark) { .faceid-btn { background: #fff; color: #000; } }
+.sheet-backdrop {
+  position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center;
+  padding: 0 12px calc(12px + env(safe-area-inset-bottom)); background: rgba(0, 0, 0, 0);
+  transition: background .3s ease;
 }
+.sheet-backdrop.show { background: rgba(0, 0, 0, .28); }
+.sheet {
+  width: 100%; max-width: 420px; padding: 26px 22px 14px; text-align: center; transform: translateY(110%);
+  transition: transform .38s cubic-bezier(.2, .9, .25, 1);
+}
+.sheet-backdrop.show .sheet { transform: none; }
+.sheet > * { position: relative; z-index: 1; }
+.sheet-icon { width: 58px; height: 58px; margin: 0 auto 12px; border-radius: 16px; display: grid; place-items: center;
+  background: var(--label); color: var(--bg, #fff); }
+.sheet-icon svg { width: 32px; height: 32px; }
+.sheet h2 { font-size: 21px; font-weight: 700; margin: 0 0 6px; letter-spacing: -.2px; }
+.sheet p { color: var(--secondary); font-size: 15px; margin: 0 0 18px; }
+.sheet-later { width: 100%; height: 46px; border: 0; background: none; color: var(--accent); font: inherit;
+  font-size: 17px; margin-top: 4px; cursor: pointer; }
 .or { display: flex; align-items: center; gap: 12px; color: var(--secondary); font-size: 13px; margin: 18px 0 14px; }
 .or::before, .or::after { content: ""; flex: 1; height: 0.5px; background: var(--separator, rgba(128,128,128,.35)); }

@@ -93,33 +93,60 @@ function showSetupHint() {
   $("retry").addEventListener("click", boot);
 }
 
-// Continuer avec Apple / Google : navigation vers le serveur, qui redirige vers le fournisseur.
-const APPLE_LOGO = '<svg viewBox="0 0 814 1000" aria-hidden="true"><path fill="currentColor" d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.6-57-155.5-127C46.7 790.7 0 663 0 541.8c0-194.4 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/></svg>';
-const GOOGLE_LOGO = '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
-const LOGIN_ERRORS = {
-  "non-configure": (p) => `La connexion avec ${p} n'est pas encore configurée sur l'ordinateur qui héberge Ancora.`,
-  "refus": (p) => `Connexion avec ${p} annulée.`,
-  "echec": (p) => `La connexion avec ${p} a échoué. Réessayez.`,
-  "expire": () => "La demande de connexion a expiré. Réessayez.",
-  "inconnu": (p) => `Aucun compte Ancora n'est associé à ce compte ${p}. Créez votre compte ou associez ${p} depuis l'ordinateur (Administration › Paramètres › Sécurité).`,
-  "deja-associe": (p) => `Ce compte ${p} est déjà associé à un autre compte Ancora.`,
-};
+// Face ID / Touch ID : clés d'accès (script commun /connexion/cle.js).
+const FACE_ID_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M9 9v1.5M15 9v1.5M12 9v4h-1"/><path d="M9.5 16a3.5 3.5 0 0 0 5 0"/></svg>';
+const passkeyReady = () => !!(window.AncoraPasskey && AncoraPasskey.supported());
+const OFFER_KEY = "ancora-faceid-propose";
 
-function returnedError() {
-  const params = new URLSearchParams(location.search);
-  const code = params.get("erreur");
-  if (!code) return "";
-  history.replaceState(null, "", location.pathname + location.hash);
-  const label = { google: "Google", apple: "Apple" }[params.get("fournisseur")] || "ce fournisseur";
-  return (LOGIN_ERRORS[code] || LOGIN_ERRORS.echec)(label);
+async function loginWithPasskey(button) {
+  const error = $("login-error");
+  button.disabled = true;
+  error.textContent = "";
+  try {
+    await AncoraPasskey.login();
+    unlock();
+  } catch (e) {
+    error.textContent = AncoraPasskey.friendly(e);
+    button.disabled = false;
+  }
 }
 
-function ssoButtons() {
-  return `<div class="sso">
-      <a class="sso-apple" href="/connexion/apple">${APPLE_LOGO}<span>Continuer avec Apple</span></a>
-      <a class="sso-google" href="/connexion/google">${GOOGLE_LOGO}<span>Continuer avec Google</span></a>
-    </div>
-    <div class="or">ou</div>`;
+async function enablePasskey() {
+  try {
+    await AncoraPasskey.register();
+    toast(`Activé : connexion avec ${AncoraPasskey.label()}`);
+    return true;
+  } catch (e) {
+    toast(AncoraPasskey.friendly(e));
+    return false;
+  }
+}
+
+// Après une connexion par mot de passe : proposer Face ID une fois (si l'appareil le permet).
+async function offerPasskey() {
+  if (!passkeyReady()) return;
+  try { if (localStorage.getItem(OFFER_KEY)) return; } catch (e) { /* navigation privée */ }
+  const status = await api("/api/auth/status").catch(() => null);
+  if (!status || status.passkeys > 0) return;
+  const name = AncoraPasskey.label();
+  const sheet = document.createElement("div");
+  sheet.className = "sheet-backdrop";
+  sheet.innerHTML = `<div class="sheet glass" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+      <div class="sheet-icon">${FACE_ID_ICON}</div>
+      <h2 id="sheet-title">Se connecter avec ${esc(name)} ?</h2>
+      <p>La prochaine fois, un regard suffit. Votre mot de passe reste valable en secours.</p>
+      <button class="primary" id="sheet-yes">Activer ${esc(name)}</button>
+      <button class="sheet-later" id="sheet-no">Plus tard</button>
+    </div>`;
+  document.body.appendChild(sheet);
+  requestAnimationFrame(() => sheet.classList.add("show"));
+  const close = () => {
+    try { localStorage.setItem(OFFER_KEY, "1"); } catch (e) { /* ignoré */ }
+    sheet.classList.remove("show");
+    setTimeout(() => sheet.remove(), 300);
+  };
+  $("sheet-no").addEventListener("click", close);
+  $("sheet-yes").addEventListener("click", async () => { if (await enablePasskey()) close(); });
 }
 
 function showLogin(message = "") {
@@ -130,7 +157,8 @@ function showLogin(message = "") {
       ${APP_ICON}
       <h1>Ancora</h1>
       <p class="lead">Connectez-vous pour accéder à votre patrimoine.</p>
-      ${ssoButtons()}
+      ${passkeyReady() ? `<button type="button" class="faceid-btn" id="faceid-login">${FACE_ID_ICON}<span>Se connecter avec ${esc(AncoraPasskey.label())}</span></button>
+      <div class="or">ou avec votre mot de passe</div>` : ""}
       <label class="field"><span>Identifiant</span>
         <input name="username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required></label>
       <label class="field"><span>Mot de passe</span>
@@ -138,9 +166,10 @@ function showLogin(message = "") {
       <button class="primary" type="submit" id="login-submit">Se connecter</button>
       <p class="login-error" id="login-error" role="alert">${esc(message)}</p>
     </form>
-    <p class="login-foot">Vos données restent chiffrées sur votre ordinateur. Ancora ne reçoit jamais votre mot de passe Apple ou Google.</p>
+    <p class="login-foot">Vos données restent chiffrées sur votre ordinateur. Face ID reste sur votre iPhone : Ancora ne reçoit ni votre visage ni votre empreinte.</p>
   </div>`;
   const form = $("login-form");
+  if ($("faceid-login")) $("faceid-login").addEventListener("click", (event) => loginWithPasskey(event.currentTarget));
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = $("login-submit");
@@ -150,6 +179,7 @@ function showLogin(message = "") {
       await api("/api/auth/login", { method: "POST",
         body: JSON.stringify({ username: form.username.value, password: form.password.value }) });
       unlock();
+      setTimeout(offerPasskey, 600);
     } catch (error) {
       $("login-error").textContent = error.message;
       form.classList.remove("shake"); void form.offsetWidth; form.classList.add("shake");
@@ -175,9 +205,8 @@ async function logout() {
 async function boot() {
   try {
     const status = await api("/api/auth/status");
-    const error = returnedError();
     if (!status.configured) return showSetupHint();
-    if (!status.authenticated) return showLogin(error);
+    if (!status.authenticated) return showLogin();
     unlock();
     api("/api/refresh").then((s) => { if (s.running) { setRefreshing(true); setTimeout(pollRefresh, 1500); } }).catch(() => {});
   } catch (error) {
@@ -593,11 +622,14 @@ async function renderSettings() {
     ${sectionHeader("Compte")}
     <div class="list">
       <div class="row"><div class="main"><div class="title">Connecté</div></div><div class="detail">${esc(auth.username || "")}</div></div>
+      ${passkeyReady() ? (auth.passkeys > 0
+        ? `<div class="row"><div class="main"><div class="title">${esc(AncoraPasskey.label())}</div></div><div class="detail">Activé</div></div>`
+        : `<button class="row" id="faceid-row"><div class="main"><div class="title" style="font-weight:650">Activer ${esc(AncoraPasskey.label())}</div></div></button>`) : ""}
       <button class="row" id="logout-row"><div class="main"><div class="title destructive">Se déconnecter</div></div></button>
     </div>
-    ${sectionFooter("Pour changer de mot de passe ou déconnecter tous vos téléphones : Ancora sur ordinateur, Administration › Paramètres.")}
+    ${sectionFooter("Pour changer de mot de passe, retirer un appareil Face ID ou déconnecter vos téléphones : Ancora sur ordinateur, Administration › Paramètres.")}
     ${sectionHeader("À propos")}
-    <div class="list"><div class="row"><div class="main"><div class="title">Ancora</div></div><div class="detail">Version téléphone 1.2</div></div></div>
+    <div class="list"><div class="row"><div class="main"><div class="title">Ancora</div></div><div class="detail">Version téléphone 1.3</div></div></div>
     ${sectionFooter("La saisie des opérations et l'administration se font dans Ancora sur ordinateur. Ancora n'est pas un outil de conseil en investissement.")}
   `;
   $("mask-toggle").addEventListener("change", async (event) => {
@@ -607,6 +639,7 @@ async function renderSettings() {
   });
   $("refresh-row").addEventListener("click", startRefresh);
   $("logout-row").addEventListener("click", logout);
+  if ($("faceid-row")) $("faceid-row").addEventListener("click", async () => { if (await enablePasskey()) renderSettings(); });
 }
 
 // ------------------------------------------------------------------ Actualisation (en arrière-plan)

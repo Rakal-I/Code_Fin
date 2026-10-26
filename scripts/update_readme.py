@@ -45,7 +45,7 @@ ARCHITECTURE = [
     ("connectors", "Fournisseurs de données : yfinance, Finnhub, SEC EDGAR, saisie manuelle"),
     ("models", "Modèles SQLAlchemy et schémas Pydantic"),
     ("database", "Accès SQLite chiffré (SQLCipher) et gestion des sessions"),
-    ("config", "Paramètres de l'application (clés API et identifiants Google / Apple hors dépôt)"),
+    ("config", "Paramètres de l'application (clés API hors dépôt)"),
     ("tests", "Tests automatisés"),
     ("migrations", "Migrations de schéma Alembic"),
 ]
@@ -61,7 +61,7 @@ STACK = [
     ("yfinance", "yfinance"),
     ("FastAPI (téléphone)", "fastapi"),
     ("SQLCipher (chiffrement)", "sqlcipher3-wheels"),
-    ("PyJWT (Google, Apple)", "pyjwt"),
+    ("WebAuthn (Face ID, Touch ID)", "webauthn"),
 ]
 
 LANGUAGES = {

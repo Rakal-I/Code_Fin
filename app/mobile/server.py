@@ -25,7 +25,7 @@ from app.connectors.registry import build_connectors
 from app.domain.quality import BADGES
 from app.models.entities import RefreshLog
 from app.models.enums import DataStatus, InstrumentType
-from app.services import auth, market_data, oidc, referential, workspace
+from app.services import auth, market_data, passkeys, referential, workspace
 from app.services import portfolio as pf
 from app.services.workspace import Workspace
 from app.ui import views
@@ -87,9 +87,9 @@ def auth_status(request: Request) -> dict:
         configured = auth.accounts_exist(s)
         account = auth.resolve_session(s, request.cookies.get(COOKIE)) if configured else None
         name = account.name if account else None
-    available = oidc.providers(config)
-    return {"configured": configured, "authenticated": account is not None, "username": name,
-            "providers": {p: p in available for p in auth.PROVIDERS}}
+        rp = connexion.rp_id(request)
+        keys = sum(1 for p in passkeys.list_passkeys(s, account.id) if p.rp_id == rp) if account else 0
+    return {"configured": configured, "authenticated": account is not None, "username": name, "passkeys": keys}
 
 
 class LoginIn(BaseModel):
@@ -369,6 +369,6 @@ def health() -> dict:
     return {"ok": True, "today": date.today().isoformat()}
 
 
-# Continuer avec Google / Apple (avant les fichiers statiques, servis à la racine).
+# Face ID / Touch ID (avant les fichiers statiques, servis à la racine).
 app.router.routes.extend(connexion.routes("mobile"))
 app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")

@@ -2,8 +2,8 @@
 
 Lancement : streamlit run streamlit_app.py   (http://localhost:8501)
 
-Streamlit sert le script interface.py ; on y ajoute les routes « Continuer avec Google / Apple »
-(/connexion/…), que Streamlit seul ne sait pas recevoir (Apple répond par un POST).
+Streamlit sert le script interface.py ; on y ajoute les routes de connexion par Face ID /
+Touch ID (/connexion/cle/…), que Streamlit seul ne sait pas recevoir.
 """
 from pathlib import Path
 

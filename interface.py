@@ -71,4 +71,7 @@ with st.sidebar:
         login.logout("Vous êtes déconnecté.")
         st.rerun()
 
+# Tant qu'aucune clé n'est enregistrée : proposer la connexion par Face ID / Touch ID.
+login.offer_passkey(ws)
+
 navigation.run()

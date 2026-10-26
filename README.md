@@ -186,10 +186,10 @@ libellé du statut est toujours affiché.
 ## 🏗️ Stack technique et architecture
 
 **Technologies :** Python 3.11+ · Streamlit · SQLite (SQLCipher) · SQLAlchemy · Alembic ·
-Pandas · Pydantic · Plotly · yfinance · FastAPI (version téléphone) · OpenID Connect (Google, Apple).
+Pandas · Pydantic · Plotly · yfinance · FastAPI (version téléphone) · WebAuthn (Face ID, Touch ID).
 
 Le point d'entrée est [`streamlit_app.py`](streamlit_app.py), à la racine : il sert le script
-[`interface.py`](interface.py) et ajoute les routes de connexion Google / Apple (`app/web/`). Les dossiers de
+[`interface.py`](interface.py) et ajoute les routes de connexion par Face ID / Touch ID (`app/web/`). Les dossiers de
 l'architecture cible sont regroupés dans le paquet `app/` ; `tests/` et `migrations/` sont à la racine.
 La version téléphone vit dans `app/mobile/` : une API JSON (FastAPI) qui réutilise les services,
 et une web-app statique (HTML, CSS, JavaScript sans dépendance) dans `app/mobile/static/`.
@@ -204,12 +204,12 @@ pendant qu'une actualisation écrit.
 | `app/` | Paquet de l'application (point d'entrée : streamlit_app.py) | ✅ Présent | 14 |
 | `app/pages/` | Pages et tableaux de bord Streamlit | ✅ Présent | 8 |
 | `app/domain/` | Règles métier : PRU, valorisation, plus-values, devises | ✅ Présent | 5 |
-| `app/services/` | Orchestration : actualisation, sauvegarde, comptes, chiffrement, connexion | ✅ Présent | 10 |
+| `app/services/` | Orchestration : actualisation, sauvegarde, comptes, chiffrement, connexion | ✅ Présent | 9 |
 | `app/connectors/` | Fournisseurs de données : yfinance, Finnhub, SEC EDGAR, saisie manuelle | ✅ Présent | 6 |
 | `app/models/` | Modèles SQLAlchemy et schémas Pydantic | ✅ Présent | 5 |
 | `app/database/` | Accès SQLite chiffré (SQLCipher) et gestion des sessions | ✅ Présent | 2 |
-| `config/`, `app/config/` | Paramètres de l'application (clés API et identifiants Google / Apple hors dépôt) | ✅ Présent | 2 |
-| `tests/` | Tests automatisés | ✅ Présent | 10 |
+| `config/`, `app/config/` | Paramètres de l'application (clés API hors dépôt) | ✅ Présent | 2 |
+| `tests/` | Tests automatisés | ✅ Présent | 9 |
 | `migrations/` | Migrations de schéma Alembic | ✅ Présent | 4 |
 <!-- AUTO:ARCHITECTURE:END -->
 
@@ -248,7 +248,7 @@ un mini-serveur privé, lancé depuis le dépôt, avec une adresse HTTPS réserv
    *Partager › Sur l'écran d'accueil*.
 
 Les ports restent **privés** (ne les passez jamais en « public » : ce sont vos données). L'adresse en
-HTTPS permet aussi la connexion Apple et Google. Le Codespace s'endort après 30 min d'inactivité et
+HTTPS permet aussi la connexion par Face ID. Le Codespace s'endort après 30 min d'inactivité et
 **garde vos données tant qu'il existe** : le supprimer efface vos comptes et la clé de chiffrement.
 Faites donc des sauvegardes (*Administration › Sauvegardes*) et notez la clé de secours
 (`python scripts/cle_de_secours.py`). Pour des données réelles à long terme, l'installation sur votre
@@ -256,9 +256,9 @@ propre ordinateur reste la plus sûre.
 
 **Premiers pas**
 
-0. **Créez votre compte** : *Continuer avec Apple*, *Continuer avec Google* (voir
-   [Connexion avec Google et Apple](#connexion-avec-google-et-apple)) ou un identifiant et un mot de passe.
-   Chaque membre du foyer peut avoir son compte : les données de chacun sont séparées et chiffrées
+0. **Créez votre compte** (identifiant et mot de passe), puis acceptez **Face ID / Touch ID** quand
+   Ancora le propose : les fois suivantes, un regard suffit (voir
+   [Connexion par Face ID](#connexion-par-face-id-et-touch-id)). Chaque membre du foyer peut avoir son compte : les données de chacun sont séparées et chiffrées
    avec leur propre clé.
 1. *Administration › Enveloppes* : créez vos enveloppes (PEA, assurance-vie, CTO…).
 2. *Administration › Instruments* : ajoutez vos instruments. Pour Yahoo Finance, le
@@ -276,37 +276,27 @@ ANCORA_DATA_DIR=data/demo streamlit run streamlit_app.py
 ```
 
 **Sources optionnelles** : copiez [`config/secrets.example.toml`](config/secrets.example.toml) en
-`config/secrets.toml` (jamais versionné) pour activer Finnhub, SEC EDGAR et la connexion Google / Apple.
+`config/secrets.toml` (jamais versionné) pour activer Finnhub et SEC EDGAR.
 
 **Variables d'environnement** : `ANCORA_DATA_DIR`, `ANCORA_BACKUP_DIR`, `ANCORA_LOG_DIR`,
-`ANCORA_KEY_FILE`, `ANCORA_MASTER_KEY`, `FINNHUB_API_KEY`, `SEC_USER_AGENT`,
-`ANCORA_GOOGLE_CLIENT_ID`, `ANCORA_GOOGLE_CLIENT_SECRET`, `ANCORA_APPLE_CLIENT_ID`,
-`ANCORA_APPLE_TEAM_ID`, `ANCORA_APPLE_KEY_ID`, `ANCORA_APPLE_PRIVATE_KEY_PATH`.
+`ANCORA_KEY_FILE`, `ANCORA_MASTER_KEY`, `FINNHUB_API_KEY`, `SEC_USER_AGENT`.
 
-### Connexion avec Google et Apple
+### Connexion par Face ID et Touch ID
 
-Les boutons sont toujours affichés ; tant qu'un fournisseur n'est pas configuré, ils expliquent quoi
-faire. *Administration › Paramètres › Connexion Google et Apple* indique l'état et les adresses de
-retour exactes à déclarer.
+Ancora utilise les **clés d'accès** (*passkeys*, norme WebAuthn), comme Apple, Google ou les banques :
+rien à configurer, aucun compte tiers.
 
-| | Google | Apple |
-|---|---|---|
-| Où | [console.cloud.google.com](https://console.cloud.google.com) › API et services › Identifiants › *ID client OAuth* (« Application Web ») | [developer.apple.com](https://developer.apple.com) › Identifiers › *Services ID* (Sign in with Apple) + *Keys* (fichier `.p8`) |
-| Coût | Gratuit | Compte Apple Developer (99 $/an) |
-| Adresse de retour | `http://localhost:8501/connexion/google/retour` (ordinateur) et `https://<adresse du téléphone>/connexion/google/retour` | HTTPS avec nom de domaine uniquement : `https://<adresse>/connexion/apple/retour` (pas de localhost) |
-| À renseigner | `[google]` `client_id`, `client_secret` | `[apple]` `client_id` (Services ID), `team_id`, `key_id`, `private_key_path` |
+1. Créez votre compte avec un identifiant et un mot de passe.
+2. Ancora propose **Activer Face ID** (iPhone), **Touch ID** (Mac) ou **Windows Hello** : acceptez.
+   Sinon : *Réglages › Compte* sur le téléphone, *Administration › Paramètres › Sécurité* sur l'ordinateur.
+3. Ensuite, **Se connecter avec Face ID** : un regard, sans mot de passe.
 
-Fonctionnement :
-
-- Ancora ne reçoit jamais votre mot de passe Google ou Apple. Il reconnaît votre compte par
-  l'identifiant stable du fournisseur (jamais par l'adresse e-mail), après avoir vérifié la signature
-  du jeton d'identité, son destinataire, son émetteur et son *nonce*. La demande est protégée par un
-  `state` lié au navigateur et par PKCE (Google).
-- Première connexion sur l'ordinateur : Ancora propose de **créer un compte** ou de **l'associer à votre
-  compte existant** (identifiant et mot de passe). Associer ou dissocier ensuite : *Administration ›
-  Paramètres › Sécurité*.
-- Sur le téléphone, Google et Apple ne connectent qu'à un compte déjà associé : les comptes se créent
-  sur l'ordinateur.
+- La clé privée reste dans l'appareil (synchronisée par le trousseau iCloud sur iPhone et Mac) ; Face ID
+  la déverrouille. Ancora ne garde qu'une clé publique et vérifie, à chaque connexion, la signature d'un
+  défi aléatoire à usage unique. Ni votre visage ni votre empreinte ne quittent l'appareil.
+- Une clé est liée à l'adresse du site : activez Face ID séparément sur l'adresse du téléphone et sur
+  celle de l'ordinateur si elles diffèrent. Elle exige HTTPS (ou `localhost`).
+- Le mot de passe reste valable en secours. Retirer un appareil : *Administration › Paramètres › Sécurité*.
 
 **Tests** (aucun appel réseau : un fournisseur simulé est utilisé) :
 
@@ -352,9 +342,9 @@ pour un usage personnel) :
 3. Sur l'iPhone, ouvrez cette adresse dans Safari, puis **Partager › Sur l'écran d'accueil** :
    Ancora s'ouvre ensuite comme une app, avec son icône.
 
-Le téléphone propose *Continuer avec Apple*, *Continuer avec Google* ou l'identifiant et le mot de
-passe créés sur l'ordinateur ; la session reste ouverte 30 jours. L'iPhone peut les proposer depuis
-le trousseau iCloud (Face ID). Chaque session n'ouvre que la base du compte connecté.
+Le téléphone propose **Se connecter avec Face ID** (une fois activé) ou l'identifiant et le mot de
+passe créés sur l'ordinateur ; la session reste ouverte 30 jours. Chaque session n'ouvre que la base du
+compte connecté.
 
 > ⚠️ Le serveur n'écoute que sur l'ordinateur (127.0.0.1). Même avec la connexion, préférez Tailscale
 > ou Cloudflare Tunnel + Access à l'ouverture d'un port sur votre réseau : deux protections valent mieux qu'une.
@@ -422,7 +412,6 @@ Code_Fin/
 │   │   ├── backup.py
 │   │   ├── logging_setup.py
 │   │   ├── market_data.py
-│   │   ├── oidc.py
 │   │   ├── portfolio.py
 │   │   ├── referential.py
 │   │   ├── vault.py
@@ -474,7 +463,6 @@ Code_Fin/
 │   ├── test_chiffrement.py
 │   ├── test_domain.py
 │   ├── test_mobile.py
-│   ├── test_oidc.py
 │   ├── test_recette.py
 │   ├── test_services.py
 │   └── test_ui.py
@@ -494,21 +482,21 @@ Code_Fin/
 <!-- AUTO:STATS:START -->
 | Langage | Fichiers | Lignes (hors vides) |
 |---|---|---|
-| Python | 74 | 7331 |
+| Python | 72 | 6814 |
 | Autres | 20 | 64 |
-| Markdown | 3 | 853 |
-| TOML | 3 | 58 |
+| Markdown | 3 | 846 |
+| TOML | 3 | 44 |
 | Texte | 2 | 23 |
 | YAML | 2 | 71 |
-| CSS | 1 | 335 |
-| HTML | 1 | 62 |
+| CSS | 1 | 348 |
+| HTML | 1 | 63 |
 | INI | 1 | 29 |
 | JSON | 1 | 12 |
-| JavaScript | 1 | 669 |
+| JavaScript | 1 | 701 |
 | Shell | 1 | 17 |
-| **Total** | **110** | **9524** |
+| **Total** | **108** | **9032** |
 
-**Tests automatisés détectés :** 104
+**Tests automatisés détectés :** 87
 
 **Stack cible** (dépendances lues dans `requirements*.txt` / `pyproject.toml`) :
 
@@ -523,7 +511,7 @@ Code_Fin/
 | yfinance | `yfinance` | ✅ |
 | FastAPI (téléphone) | `fastapi` | ✅ |
 | SQLCipher (chiffrement) | `sqlcipher3-wheels` | ✅ |
-| PyJWT (Google, Apple) | `pyjwt` | ✅ |
+| WebAuthn (Face ID, Touch ID) | `webauthn` | ✅ |
 <!-- AUTO:STATS:END -->
 
 ---
@@ -593,8 +581,10 @@ Constats lors des essais :
 - **Aucune** transmission des positions aux fournisseurs de données.
 - Possibilité de masquer les montants à l'écran.
 - Aucune donnée sensible dans les logs.
-- **Connexion obligatoire** sur l'ordinateur et le téléphone (Apple, Google ou mot de passe ; plusieurs
-  comptes possibles, chacun ne voit que ses données) :
+- **Connexion obligatoire** sur l'ordinateur et le téléphone (mot de passe, puis Face ID / Touch ID ;
+  plusieurs comptes possibles, chacun ne voit que ses données) :
+  - Face ID / Touch ID par clé d'accès (WebAuthn) : vérification de l'utilisateur exigée, défi à usage
+    unique, adresse du site contrôlée ;
   - mot de passe jamais stocké, seulement son empreinte *scrypt* salée ;
   - après 5 essais ratés, connexion bloquée 1 min, puis 2, 4… jusqu'à 60 min ;
   - ordinateur : verrouillage après 30 min d'inactivité ; téléphone : session de 30 jours dans un
