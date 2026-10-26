@@ -1,0 +1,22 @@
+# Thème Ancora : noir et blanc, sobre (voir README, « Identité visuelle »).
+[theme]
+base = "light"
+primaryColor = "#000000"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F5F5F7"
+textColor = "#1D1D1F"
+# Police système façon Apple (SF Pro sur Mac), Inter si installée.
+font = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Helvetica Neue', Arial, sans-serif"
+headingFont = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter Display', Inter, 'Helvetica Neue', Arial, sans-serif"
+baseRadius = "0.6rem"
+
+[theme.sidebar]
+backgroundColor = "#F5F5F7"
+
+[client]
+toolbarMode = "minimal"
+
+[browser]
+# Confidentialité : aucune statistique d'usage envoyée.
+gatherUsageStats = false
+

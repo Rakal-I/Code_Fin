@@ -38,14 +38,14 @@ BOT_TAG = "[readme-bot]"
 
 # Architecture cible (cahier des charges, §19).
 ARCHITECTURE = [
-    ("app", "Point d'entrée de l'application Streamlit"),
+    ("app", "Paquet de l'application (point d'entrée : streamlit_app.py)"),
     ("pages", "Pages et tableaux de bord Streamlit"),
     ("domain", "Règles métier : PRU, valorisation, plus-values, devises"),
-    ("services", "Orchestration : actualisation, sauvegarde, archivage"),
+    ("services", "Orchestration : actualisation, sauvegarde, comptes, chiffrement, connexion"),
     ("connectors", "Fournisseurs de données : yfinance, Finnhub, SEC EDGAR, saisie manuelle"),
     ("models", "Modèles SQLAlchemy et schémas Pydantic"),
-    ("database", "Accès SQLite et gestion des sessions"),
-    ("config", "Paramètres de l'application (clés API hors dépôt)"),
+    ("database", "Accès SQLite chiffré (SQLCipher) et gestion des sessions"),
+    ("config", "Paramètres de l'application (clés API et identifiants Google / Apple hors dépôt)"),
     ("tests", "Tests automatisés"),
     ("migrations", "Migrations de schéma Alembic"),
 ]
@@ -59,7 +59,9 @@ STACK = [
     ("Pydantic", "pydantic"),
     ("Plotly", "plotly"),
     ("yfinance", "yfinance"),
-    ("Finnhub", "finnhub-python"),
+    ("FastAPI (téléphone)", "fastapi"),
+    ("SQLCipher (chiffrement)", "sqlcipher3-wheels"),
+    ("PyJWT (Google, Apple)", "pyjwt"),
 ]
 
 LANGUAGES = {
@@ -124,11 +126,16 @@ def format_date(iso: str) -> str:
 # --------------------------------------------------------------------------
 
 def section_meta() -> str:
-    head = git("log", "-1", "--format=%h|%cI")
-    if not head:
+    # Les commits du bot sont ignorés : le README décrit le dernier changement réel.
+    commits = [
+        line.split("|", 2)
+        for line in git("log", "--format=%h|%cI|%s").splitlines()
+        if BOT_TAG not in line
+    ]
+    if not commits:
         return "_Aucun commit pour l'instant._"
-    short_hash, date = head.split("|", 1)
-    total = int(git("rev-list", "--count", "HEAD") or 0)
+    short_hash, date, _ = commits[0]
+    total = len(commits)
     return (
         f"> 🔄 **Dernière mise à jour :** {format_date(date)} (heure de Paris) · "
         f"commit `{short_hash}` · {total} commit{'s' if total > 1 else ''} au total"

@@ -1,0 +1,12 @@
+{
+  "name": "Ancora",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
+  "postCreateCommand": "pip install -r requirements.txt",
+  "postAttachCommand": "bash .devcontainer/start.sh",
+  "forwardPorts": [8501, 8502],
+  "portsAttributes": {
+    "8501": { "label": "Ancora (ordinateur)", "visibility": "private", "onAutoForward": "openBrowser" },
+    "8502": { "label": "Ancora (téléphone)", "visibility": "private", "onAutoForward": "notify" }
+  },
+  "hostRequirements": { "cpus": 2 }
+}

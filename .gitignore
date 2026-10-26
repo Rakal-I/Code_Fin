@@ -17,8 +17,13 @@ backups/
 .env
 .streamlit/secrets.toml
 config/secrets*
+!config/secrets.example.toml
 
 # Éditeurs / OS
 .vscode/
 .idea/
 .DS_Store
+
+# Données de l'application (stockage local uniquement)
+data/
+logs/
