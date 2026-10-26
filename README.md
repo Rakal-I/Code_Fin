@@ -25,7 +25,7 @@ Deux interfaces partagent la même base et les mêmes règles de calcul :
 > ou de vente.
 
 <!-- AUTO:META:START -->
-> 🔄 **Dernière mise à jour :** 26/10/2026 16:58 (heure de Paris) · commit `5c8101d` · 14 commits au total
+> 🔄 **Dernière mise à jour :** 26/10/2026 17:02 (heure de Paris) · commit `264338c` · 15 commits au total
 <!-- AUTO:META:END -->
 
 ---
@@ -529,6 +529,7 @@ Code_Fin/
 <!-- AUTO:COMMITS:START -->
 | Commit | Date | Auteur | Message |
 |---|---|---|---|
+| `264338c` | 26/10/2026 | McOfirty | Merge pull request #1 from Rakal-I/claude/readme-auto-update-investments-qdwrbw |
 | `5c8101d` | 26/10/2026 | Claude | docs: précise la branche du Codespace |
 | `b4a60f3` | 26/10/2026 | Claude | Ajoute la configuration GitHub Codespaces pour héberger Ancora |
 | `44300b3` | 26/10/2026 | Claude | Ajoute la connexion Google et Apple, et chiffre les données de chaque compte |
@@ -538,7 +539,6 @@ Code_Fin/
 | `5846c7e` | 26/10/2026 | Claude | Crée l'application Ancora (version 1 du cahier des charges) |
 | `e3439a9` | 26/10/2026 | Claude | Nouvelle identité Ancora : anneau de répartition en noir et blanc |
 | `3ec2ab1` | 26/10/2026 | Claude | Remplace l'ancre par un logo abstrait « sommet » |
-| `37b926f` | 26/10/2026 | Claude | Renomme l'application en « Ancora » avec un logo en forme d'ancre |
 <!-- AUTO:COMMITS:END -->
 
 ---
