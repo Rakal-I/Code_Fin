@@ -25,7 +25,7 @@ Deux interfaces partagent la même base et les mêmes règles de calcul :
 > ou de vente.
 
 <!-- AUTO:META:START -->
-> 🔄 **Dernière mise à jour :** 26/10/2026 01:33 (heure de Paris) · commit `646afaf` · 9 commits au total
+> 🔄 **Dernière mise à jour :** 26/10/2026 12:05 (heure de Paris) · commit `b0679e5` · 10 commits au total
 <!-- AUTO:META:END -->
 
 ---
@@ -198,7 +198,7 @@ La base SQLite est en mode WAL : les deux interfaces la lisent pendant qu'une ac
 <!-- AUTO:ARCHITECTURE:START -->
 | Dossier | Rôle | État | Fichiers Python |
 |---|---|---|---|
-| `app/` | Paquet de l'application (point d'entrée : streamlit_app.py) | ✅ Présent | 10 |
+| `app/` | Paquet de l'application (point d'entrée : streamlit_app.py) | ✅ Présent | 11 |
 | `app/pages/` | Pages et tableaux de bord Streamlit | ✅ Présent | 8 |
 | `app/domain/` | Règles métier : PRU, valorisation, plus-values, devises | ✅ Présent | 5 |
 | `app/services/` | Orchestration : actualisation, sauvegarde, archivage | ✅ Présent | 6 |
@@ -360,6 +360,7 @@ Code_Fin/
 │   ├── ui/
 │   │   ├── __init__.py
 │   │   ├── context.py
+│   │   ├── fiche.py
 │   │   ├── formatting.py
 │   │   ├── theme.py
 │   │   └── views.py
@@ -409,19 +410,19 @@ Code_Fin/
 <!-- AUTO:STATS:START -->
 | Langage | Fichiers | Lignes (hors vides) |
 |---|---|---|
-| Python | 56 | 4965 |
+| Python | 57 | 5200 |
 | Autres | 10 | 61 |
-| Markdown | 3 | 757 |
+| Markdown | 3 | 772 |
 | TOML | 3 | 44 |
 | Texte | 2 | 18 |
 | YAML | 2 | 71 |
-| CSS | 1 | 205 |
-| HTML | 1 | 51 |
+| CSS | 1 | 288 |
+| HTML | 1 | 58 |
 | INI | 1 | 29 |
-| JavaScript | 1 | 419 |
-| **Total** | **80** | **6620** |
+| JavaScript | 1 | 551 |
+| **Total** | **81** | **7092** |
 
-**Tests automatisés détectés :** 64
+**Tests automatisés détectés :** 66
 
 **Stack cible** (dépendances lues dans `requirements*.txt` / `pyproject.toml`) :
 
@@ -444,6 +445,7 @@ Code_Fin/
 <!-- AUTO:COMMITS:START -->
 | Commit | Date | Auteur | Message |
 |---|---|---|---|
+| `b0679e5` | 26/10/2026 | Claude | Passe les deux interfaces au style « Liquid Glass » et aligne les graphiques sur le logo |
 | `646afaf` | 26/10/2026 | Claude | Ajoute la version téléphone d'Ancora (web-app au style iOS) |
 | `5846c7e` | 26/10/2026 | Claude | Crée l'application Ancora (version 1 du cahier des charges) |
 | `e3439a9` | 26/10/2026 | Claude | Nouvelle identité Ancora : anneau de répartition en noir et blanc |
