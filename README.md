@@ -25,7 +25,7 @@ Deux interfaces partagent la même base et les mêmes règles de calcul :
 > ou de vente.
 
 <!-- AUTO:META:START -->
-> 🔄 **Dernière mise à jour :** 26/10/2026 12:05 (heure de Paris) · commit `b0679e5` · 10 commits au total
+> 🔄 **Dernière mise à jour :** 26/10/2026 13:14 (heure de Paris) · commit `f887633` · 11 commits au total
 <!-- AUTO:META:END -->
 
 ---
@@ -198,16 +198,16 @@ La base SQLite est en mode WAL : les deux interfaces la lisent pendant qu'une ac
 <!-- AUTO:ARCHITECTURE:START -->
 | Dossier | Rôle | État | Fichiers Python |
 |---|---|---|---|
-| `app/` | Paquet de l'application (point d'entrée : streamlit_app.py) | ✅ Présent | 11 |
+| `app/` | Paquet de l'application (point d'entrée : streamlit_app.py) | ✅ Présent | 12 |
 | `app/pages/` | Pages et tableaux de bord Streamlit | ✅ Présent | 8 |
 | `app/domain/` | Règles métier : PRU, valorisation, plus-values, devises | ✅ Présent | 5 |
-| `app/services/` | Orchestration : actualisation, sauvegarde, archivage | ✅ Présent | 6 |
+| `app/services/` | Orchestration : actualisation, sauvegarde, archivage | ✅ Présent | 7 |
 | `app/connectors/` | Fournisseurs de données : yfinance, Finnhub, SEC EDGAR, saisie manuelle | ✅ Présent | 6 |
 | `app/models/` | Modèles SQLAlchemy et schémas Pydantic | ✅ Présent | 4 |
 | `app/database/` | Accès SQLite et gestion des sessions | ✅ Présent | 2 |
 | `config/`, `app/config/` | Paramètres de l'application (clés API hors dépôt) | ✅ Présent | 2 |
-| `tests/` | Tests automatisés | ✅ Présent | 7 |
-| `migrations/` | Migrations de schéma Alembic | ✅ Présent | 2 |
+| `tests/` | Tests automatisés | ✅ Présent | 8 |
+| `migrations/` | Migrations de schéma Alembic | ✅ Présent | 3 |
 <!-- AUTO:ARCHITECTURE:END -->
 
 ---
@@ -357,6 +357,7 @@ Code_Fin/
 │   │   └── quality.py
 │   ├── services/
 │   │   ├── __init__.py
+│   │   ├── auth.py
 │   │   ├── backup.py
 │   │   ├── logging_setup.py
 │   │   ├── market_data.py
@@ -367,6 +368,7 @@ Code_Fin/
 │   │   ├── context.py
 │   │   ├── fiche.py
 │   │   ├── formatting.py
+│   │   ├── login.py
 │   │   ├── theme.py
 │   │   └── views.py
 │   ├── __init__.py
@@ -383,16 +385,19 @@ Code_Fin/
 │   └── ROADMAP.md
 ├── migrations/
 │   ├── versions/
-│   │   └── 0001_schema_initial.py
+│   │   ├── 0001_schema_initial.py
+│   │   └── 0002_authentification.py
 │   ├── env.py
 │   └── script.py.mako
 ├── scripts/
 │   ├── demo_data.py
 │   ├── generate_logo.py
+│   ├── reset_password.py
 │   └── update_readme.py
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py
+│   ├── test_auth.py
 │   ├── test_domain.py
 │   ├── test_mobile.py
 │   ├── test_recette.py
@@ -415,19 +420,19 @@ Code_Fin/
 <!-- AUTO:STATS:START -->
 | Langage | Fichiers | Lignes (hors vides) |
 |---|---|---|
-| Python | 57 | 5200 |
+| Python | 62 | 5767 |
 | Autres | 10 | 61 |
-| Markdown | 3 | 772 |
+| Markdown | 3 | 783 |
 | TOML | 3 | 44 |
 | Texte | 2 | 18 |
 | YAML | 2 | 71 |
-| CSS | 1 | 288 |
+| CSS | 1 | 317 |
 | HTML | 1 | 58 |
 | INI | 1 | 29 |
-| JavaScript | 1 | 551 |
-| **Total** | **81** | **7092** |
+| JavaScript | 1 | 641 |
+| **Total** | **86** | **7789** |
 
-**Tests automatisés détectés :** 66
+**Tests automatisés détectés :** 79
 
 **Stack cible** (dépendances lues dans `requirements*.txt` / `pyproject.toml`) :
 
@@ -450,6 +455,7 @@ Code_Fin/
 <!-- AUTO:COMMITS:START -->
 | Commit | Date | Auteur | Message |
 |---|---|---|---|
+| `f887633` | 26/10/2026 | Claude | Ajoute une connexion obligatoire sur l'ordinateur et le téléphone |
 | `b0679e5` | 26/10/2026 | Claude | Passe les deux interfaces au style « Liquid Glass » et aligne les graphiques sur le logo |
 | `646afaf` | 26/10/2026 | Claude | Ajoute la version téléphone d'Ancora (web-app au style iOS) |
 | `5846c7e` | 26/10/2026 | Claude | Crée l'application Ancora (version 1 du cahier des charges) |
@@ -459,7 +465,6 @@ Code_Fin/
 | `0a47799` | 26/10/2026 | Claude | Refait le logo Vigie dans un style minimaliste façon Apple |
 | `6be385f` | 26/10/2026 | Claude | Nomme l'application « Vigie » et ajoute son logo |
 | `9057d72` | 26/10/2026 | Claude | Ignore les commits du bot dans l'en-tête du README |
-| `af4a092` | 26/10/2026 | Claude | Ajoute un README auto-mis à jour et le cahier des charges |
 <!-- AUTO:COMMITS:END -->
 
 ---
