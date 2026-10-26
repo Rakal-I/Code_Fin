@@ -25,7 +25,7 @@ Deux interfaces partagent la même base et les mêmes règles de calcul :
 > ou de vente.
 
 <!-- AUTO:META:START -->
-> 🔄 **Dernière mise à jour :** 26/10/2026 17:16 (heure de Paris) · commit `9cba7e9` · 18 commits au total
+> 🔄 **Dernière mise à jour :** 26/10/2026 17:40 (heure de Paris) · commit `236a1b7` · 19 commits au total
 <!-- AUTO:META:END -->
 
 ---
@@ -204,12 +204,12 @@ pendant qu'une actualisation écrit.
 | `app/` | Paquet de l'application (point d'entrée : streamlit_app.py) | ✅ Présent | 14 |
 | `app/pages/` | Pages et tableaux de bord Streamlit | ✅ Présent | 8 |
 | `app/domain/` | Règles métier : PRU, valorisation, plus-values, devises | ✅ Présent | 5 |
-| `app/services/` | Orchestration : actualisation, sauvegarde, comptes, chiffrement, connexion | ✅ Présent | 9 |
+| `app/services/` | Orchestration : actualisation, sauvegarde, comptes, chiffrement, connexion | ✅ Présent | 10 |
 | `app/connectors/` | Fournisseurs de données : yfinance, Finnhub, SEC EDGAR, saisie manuelle | ✅ Présent | 6 |
 | `app/models/` | Modèles SQLAlchemy et schémas Pydantic | ✅ Présent | 5 |
 | `app/database/` | Accès SQLite chiffré (SQLCipher) et gestion des sessions | ✅ Présent | 2 |
 | `config/`, `app/config/` | Paramètres de l'application (clés API hors dépôt) | ✅ Présent | 2 |
-| `tests/` | Tests automatisés | ✅ Présent | 9 |
+| `tests/` | Tests automatisés | ✅ Présent | 11 |
 | `migrations/` | Migrations de schéma Alembic | ✅ Présent | 4 |
 <!-- AUTO:ARCHITECTURE:END -->
 
@@ -412,6 +412,7 @@ Code_Fin/
 │   │   ├── backup.py
 │   │   ├── logging_setup.py
 │   │   ├── market_data.py
+│   │   ├── passkeys.py
 │   │   ├── portfolio.py
 │   │   ├── referential.py
 │   │   ├── vault.py
@@ -426,7 +427,8 @@ Code_Fin/
 │   │   └── views.py
 │   ├── web/
 │   │   ├── __init__.py
-│   │   └── connexion.py
+│   │   ├── connexion.py
+│   │   └── passkey.js
 │   ├── __init__.py
 │   └── bootstrap.py
 ├── assets/
@@ -459,10 +461,12 @@ Code_Fin/
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py
+│   ├── fake_authenticator.py
 │   ├── test_auth.py
 │   ├── test_chiffrement.py
 │   ├── test_domain.py
 │   ├── test_mobile.py
+│   ├── test_passkeys.py
 │   ├── test_recette.py
 │   ├── test_services.py
 │   └── test_ui.py
@@ -482,21 +486,21 @@ Code_Fin/
 <!-- AUTO:STATS:START -->
 | Langage | Fichiers | Lignes (hors vides) |
 |---|---|---|
-| Python | 72 | 6814 |
+| Python | 75 | 7096 |
 | Autres | 20 | 64 |
 | Markdown | 3 | 846 |
 | TOML | 3 | 44 |
+| JavaScript | 2 | 769 |
 | Texte | 2 | 23 |
 | YAML | 2 | 71 |
 | CSS | 1 | 348 |
 | HTML | 1 | 63 |
 | INI | 1 | 29 |
 | JSON | 1 | 12 |
-| JavaScript | 1 | 701 |
 | Shell | 1 | 17 |
-| **Total** | **108** | **9032** |
+| **Total** | **112** | **9382** |
 
-**Tests automatisés détectés :** 87
+**Tests automatisés détectés :** 94
 
 **Stack cible** (dépendances lues dans `requirements*.txt` / `pyproject.toml`) :
 
@@ -521,6 +525,7 @@ Code_Fin/
 <!-- AUTO:COMMITS:START -->
 | Commit | Date | Auteur | Message |
 |---|---|---|---|
+| `236a1b7` | 26/10/2026 | Claude | Remplace Google/Apple par la connexion Face ID / Touch ID (clés d'accès) |
 | `9cba7e9` | 26/10/2026 | Claude | Merge branch 'main' of https://github.com/Rakal-I/Code_Fin |
 | `8c2cdf3` | 26/10/2026 | Claude | Ajoute le logo partout : favicons, icônes iPhone/Android, aperçu de partage |
 | `082b557` | 26/10/2026 | Claude | Corrige l'écran blanc dans Codespaces |
@@ -530,7 +535,6 @@ Code_Fin/
 | `44300b3` | 26/10/2026 | Claude | Ajoute la connexion Google et Apple, et chiffre les données de chaque compte |
 | `f887633` | 26/10/2026 | Claude | Ajoute une connexion obligatoire sur l'ordinateur et le téléphone |
 | `b0679e5` | 26/10/2026 | Claude | Passe les deux interfaces au style « Liquid Glass » et aligne les graphiques sur le logo |
-| `646afaf` | 26/10/2026 | Claude | Ajoute la version téléphone d'Ancora (web-app au style iOS) |
 <!-- AUTO:COMMITS:END -->
 
 ---
