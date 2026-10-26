@@ -25,7 +25,7 @@ Deux interfaces partagent la même base et les mêmes règles de calcul :
 > ou de vente.
 
 <!-- AUTO:META:START -->
-> 🔄 **Dernière mise à jour :** 26/10/2026 00:52 (heure de Paris) · commit `5846c7e` · 8 commits au total
+> 🔄 **Dernière mise à jour :** 26/10/2026 01:33 (heure de Paris) · commit `646afaf` · 9 commits au total
 <!-- AUTO:META:END -->
 
 ---
@@ -198,7 +198,7 @@ La base SQLite est en mode WAL : les deux interfaces la lisent pendant qu'une ac
 <!-- AUTO:ARCHITECTURE:START -->
 | Dossier | Rôle | État | Fichiers Python |
 |---|---|---|---|
-| `app/` | Paquet de l'application (point d'entrée : streamlit_app.py) | ✅ Présent | 5 |
+| `app/` | Paquet de l'application (point d'entrée : streamlit_app.py) | ✅ Présent | 10 |
 | `app/pages/` | Pages et tableaux de bord Streamlit | ✅ Présent | 8 |
 | `app/domain/` | Règles métier : PRU, valorisation, plus-values, devises | ✅ Présent | 5 |
 | `app/services/` | Orchestration : actualisation, sauvegarde, archivage | ✅ Présent | 6 |
@@ -206,7 +206,7 @@ La base SQLite est en mode WAL : les deux interfaces la lisent pendant qu'une ac
 | `app/models/` | Modèles SQLAlchemy et schémas Pydantic | ✅ Présent | 4 |
 | `app/database/` | Accès SQLite et gestion des sessions | ✅ Présent | 2 |
 | `config/`, `app/config/` | Paramètres de l'application (clés API hors dépôt) | ✅ Présent | 2 |
-| `tests/` | Tests automatisés | ✅ Présent | 6 |
+| `tests/` | Tests automatisés | ✅ Présent | 7 |
 | `migrations/` | Migrations de schéma Alembic | ✅ Présent | 2 |
 <!-- AUTO:ARCHITECTURE:END -->
 
@@ -326,6 +326,11 @@ Code_Fin/
 │   │   ├── performance.py
 │   │   ├── portfolio.py
 │   │   └── quality.py
+│   ├── mobile/
+│   │   ├── static/  (7 fichiers)
+│   │   ├── __init__.py
+│   │   ├── __main__.py
+│   │   └── server.py
 │   ├── models/
 │   │   ├── __init__.py
 │   │   ├── entities.py
@@ -350,10 +355,13 @@ Code_Fin/
 │   ├── ui/
 │   │   ├── __init__.py
 │   │   ├── context.py
+│   │   ├── formatting.py
 │   │   ├── theme.py
 │   │   └── views.py
-│   └── __init__.py
+│   ├── __init__.py
+│   └── bootstrap.py
 ├── assets/
+│   ├── icon-square.svg
 │   ├── icon.svg
 │   ├── logo-dark.svg
 │   └── logo.svg
@@ -375,6 +383,7 @@ Code_Fin/
 │   ├── __init__.py
 │   ├── conftest.py
 │   ├── test_domain.py
+│   ├── test_mobile.py
 │   ├── test_recette.py
 │   ├── test_services.py
 │   └── test_ui.py
@@ -395,16 +404,19 @@ Code_Fin/
 <!-- AUTO:STATS:START -->
 | Langage | Fichiers | Lignes (hors vides) |
 |---|---|---|
-| Python | 50 | 4573 |
-| Autres | 5 | 45 |
+| Python | 56 | 4965 |
+| Autres | 10 | 61 |
 | Markdown | 3 | 757 |
 | TOML | 3 | 44 |
 | Texte | 2 | 18 |
 | YAML | 2 | 71 |
+| CSS | 1 | 205 |
+| HTML | 1 | 51 |
 | INI | 1 | 29 |
-| **Total** | **66** | **5537** |
+| JavaScript | 1 | 419 |
+| **Total** | **80** | **6620** |
 
-**Tests automatisés détectés :** 58
+**Tests automatisés détectés :** 64
 
 **Stack cible** (dépendances lues dans `requirements*.txt` / `pyproject.toml`) :
 
@@ -427,6 +439,7 @@ Code_Fin/
 <!-- AUTO:COMMITS:START -->
 | Commit | Date | Auteur | Message |
 |---|---|---|---|
+| `646afaf` | 26/10/2026 | Claude | Ajoute la version téléphone d'Ancora (web-app au style iOS) |
 | `5846c7e` | 26/10/2026 | Claude | Crée l'application Ancora (version 1 du cahier des charges) |
 | `e3439a9` | 26/10/2026 | Claude | Nouvelle identité Ancora : anneau de répartition en noir et blanc |
 | `3ec2ab1` | 26/10/2026 | Claude | Remplace l'ancre par un logo abstrait « sommet » |
