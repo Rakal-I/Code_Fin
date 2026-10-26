@@ -49,7 +49,9 @@ if monthly:
     st.subheader("Par mois")
     keys = sorted(monthly)
     labels = [f"{k[5:]}/{k[:4]}" for k in keys]
-    st.plotly_chart(theme.bars(labels, [monthly[k] for k in keys], masked=masked), config=theme.CHART_CONFIG,
+    current_year = max(k[:4] for k in keys)
+    st.plotly_chart(theme.bars(labels, [monthly[k] for k in keys], masked=masked,
+                               emphasis=[k[:4] == current_year for k in keys]), config=theme.CHART_CONFIG,
                     width="stretch")
 
 st.subheader("Détail")

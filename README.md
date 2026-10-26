@@ -262,8 +262,8 @@ pytest            # dont tests/test_recette.py : les 13 critères de recette
 
 ## 📱 Version téléphone
 
-Une interface simplifiée, pensée comme une app iPhone : grands titres, listes groupées,
-barre d'onglets, mode sombre automatique, graphique de cours à parcourir du doigt.
+Une interface simplifiée, pensée comme une app iPhone au style « Liquid Glass » : grands titres,
+panneaux en verre, barre d'onglets flottante, mode sombre automatique.
 
 | Onglet | Contenu |
 |---|---|
@@ -271,6 +271,11 @@ barre d'onglets, mode sombre automatique, graphique de cours à parcourir du doi
 | **Marchés** | Instruments suivis, détenus ou indices, cours et performance sur la période choisie ; fiche détaillée |
 | **Revenus** | Revenus des 12 derniers mois, histogramme mensuel, derniers versements |
 | **Réglages** | Masquer les montants, actualiser les données, qualité des données |
+
+Gestes et détails : tirer l'écran vers le bas pour actualiser, toucher un segment de l'anneau
+(ou une ligne de légende) pour l'isoler, toucher un mois pour lire son montant, parcourir le
+graphique du doigt, rechercher dans Marchés. La barre d'onglets flottante se fait discrète
+pendant le défilement.
 
 La saisie et l'administration restent sur l'ordinateur, volontairement : le téléphone sert à consulter.
 
@@ -544,6 +549,20 @@ enveloppes. Sur fond sombre, l'icône du logo s'inverse (fond blanc, anneau noir
 | Couleurs | noir `#000000` · blanc `#FFFFFF` · gris `#8E8E93` (texte secondaire) |
 | Anneau | segments de 50 %, 30 % et 20 %, opacités 100 %, 62 % et 34 % |
 | Typographie | Inter Display Light en minuscules, convertie en tracés (rendu identique partout) |
+
+**Interfaces : style « Liquid Glass ».** Panneaux en verre dépoli (flou, reflet sur le bord
+supérieur, ombre douce) posés sur une lumière ambiante, contrôles en capsules, fenêtres et
+barres flottantes. En mode sombre, le verre devient fumé.
+
+**Graphiques : la règle du logo.**
+
+| Élément | Règle |
+|---|---|
+| Couleur | Un seul ton : noir (blanc en mode sombre) |
+| Répartitions | Anneau aux extrémités arrondies, fines ouvertures entre segments, opacités 100 %, 62 %, 34 % (puis 20 %, 12 %, 7 %) |
+| Barres | Capsules ; pleines si mises en avant, sinon 34 % |
+| Courbes | Trait noir arrondi, dégradé translucide dessous, point sur le dernier cours |
+| Gains / pertes | Seule exception colorée : vert et rouge, pour la lisibilité |
 
 Les SVG sont produits par [`scripts/generate_logo.py`](scripts/generate_logo.py)
 (nécessite `pip install fonttools` et la police Inter Display).

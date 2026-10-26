@@ -9,7 +9,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Ancora">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#EDEDF0" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -17,34 +17,43 @@
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
+  <!-- Lumière ambiante derrière le verre -->
+  <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
+
   <header class="navbar" id="navbar">
     <div class="left" id="nav-left"></div>
     <div class="small-title" id="small-title">Ancora</div>
     <div class="right">
-      <button class="nav-btn" id="refresh-btn" aria-label="Actualiser les données">
+      <button class="glass-btn" id="refresh-btn" aria-label="Actualiser les données">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>
       </button>
     </div>
   </header>
 
+  <!-- Tirer pour actualiser -->
+  <div class="ptr" id="ptr" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>
+  </div>
+
   <main id="view" aria-live="polite"></main>
 
-  <nav class="tabbar" aria-label="Navigation principale">
+  <nav class="tabbar" id="tabbar" aria-label="Navigation principale">
+    <span class="tab-lens" id="tab-lens" aria-hidden="true"></span>
     <a href="#/" data-tab="patrimoine">
-      <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M13 3.5a9.5 9.5 0 0 1 9.5 9.5"/><path d="M22.2 16.4a9.5 9.5 0 0 1-7 6"/><path d="M11 22.3A9.5 9.5 0 0 1 9.8 4"/></svg>
-      Patrimoine
+      <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M13 3.5a9.5 9.5 0 0 1 9.4 8"/><path d="M22.2 16.4a9.5 9.5 0 0 1-7.2 6.1" opacity=".62"/><path d="M10.6 22.2A9.5 9.5 0 0 1 9.6 4.1" opacity=".34"/></svg>
+      <span>Patrimoine</span>
     </a>
     <a href="#/marches" data-tab="marches">
-      <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 19l6-6 4 4 9-10"/><path d="M16 7h6v6"/></svg>
-      Marchés
+      <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 19l6-6 4 4 9-10"/><path d="M16 7h6v6"/></svg>
+      <span>Marchés</span>
     </a>
     <a href="#/revenus" data-tab="revenus">
-      <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 21V13"/><path d="M11 21V8"/><path d="M17 21v-6"/><path d="M23 21V5"/></svg>
-      Revenus
+      <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 21v-6" opacity=".34"/><path d="M11 21V9" opacity=".62"/><path d="M17 21v-8" opacity=".62"/><path d="M23 21V5"/></svg>
+      <span>Revenus</span>
     </a>
     <a href="#/reglages" data-tab="reglages">
       <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h11"/><path d="M19 7h3"/><circle cx="17" cy="7" r="2.2"/><path d="M4 19h3"/><path d="M11 19h11"/><circle cx="9" cy="19" r="2.2"/><path d="M4 13h7"/><path d="M15 13h7"/><circle cx="13" cy="13" r="2.2"/></svg>
-      Réglages
+      <span>Réglages</span>
     </a>
   </nav>
 

@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 
 from app.services import portfolio as pf
-from app.ui import context, theme
+from app.ui import context, fiche, theme
 
 theme.header("Portefeuille", "Chaque ligne : quantité, PRU, valorisation et plus-value, en devise et en euros.",
              kicker="Patrimoine")
@@ -35,7 +35,8 @@ if open_views:
     } for v in open_views])
     money = lambda x: theme.money(x, masked=masked)  # noqa: E731
     signed = lambda x: theme.money(x, masked=masked, signed=True)  # noqa: E731
-    theme.table(frame, {
+    theme.hint("Cliquez sur une ligne pour ouvrir la fiche de l'instrument.")
+    picked = theme.table(frame, {
         "Quantité": lambda x: theme.qty(x, masked),
         "PRU": lambda x: theme.number(x, 2),
         "Cours": lambda x: theme.number(x, 2),
@@ -44,7 +45,9 @@ if open_views:
         "Plus-value %": theme.pct,
         "Effet marché (€)": signed,
         "Effet change (€)": signed,
-    }, gains=["Plus-value (€)", "Plus-value %", "Effet marché (€)", "Effet change (€)"])
+    }, gains=["Plus-value (€)", "Plus-value %", "Effet marché (€)", "Effet change (€)"], key="portfolio_lines")
+    if picked is not None:
+        fiche.show(open_views[picked].instrument.id)
     theme.note("Plus-value = valeur actuelle − coût d'acquisition. En euros, elle se décompose en effet de marché "
                "(variation du cours, au taux de change d'achat) et effet de change. « — » : donnée indisponible, "
                "jamais remplacée par zéro.")

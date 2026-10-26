@@ -6,7 +6,7 @@ import streamlit as st
 
 from app.services import portfolio as pf
 from app.services.market_data import today_utc
-from app.ui import context, theme
+from app.ui import context, fiche, theme
 
 theme.header("Tableau de bord", "Votre patrimoine consolidé en euros.", kicker="Patrimoine")
 prefs = context.prefs()
@@ -31,13 +31,19 @@ recent = [r for r in income_rows if r.day >= year_ago]
 income_12m = sum(r.amount_eur for r in recent if r.amount_eur is not None)
 income_missing = sum(1 for r in recent if r.amount_eur is None)
 
-c1, c2, c3, c4 = st.columns(4)
-c1.metric("Valorisation totale", theme.money(summary.value_eur, masked=masked, decimals=0))
-c2.metric("Plus-value latente", theme.money(summary.gain_eur, masked=masked, decimals=0, signed=True),
-          delta=theme.pct(summary.gain_pct) if summary.gain_pct is not None else None,
-          delta_color="normal")
-c3.metric("Plus-values réalisées", theme.money(summary.realized_eur, masked=masked, decimals=0, signed=True))
-c4.metric("Revenus sur 12 mois", theme.money(income_12m, masked=masked, decimals=0))
+gain_color = theme.tone(summary.gain_eur)
+theme.hero(
+    "Valorisation totale",
+    theme.money(summary.value_eur, masked=masked, decimals=0),
+    f'<span style="color:{gain_color}">{theme.money(summary.gain_eur, masked=masked, decimals=0, signed=True)} '
+    f'({theme.pct(summary.gain_pct)})</span> <span class="muted">plus-value latente</span>',
+    side=[
+        ("Plus-values réalisées", theme.money(summary.realized_eur, masked=masked, decimals=0, signed=True),
+         theme.tone(summary.realized_eur)),
+        ("Revenus sur 12 mois", theme.money(income_12m, masked=masked, decimals=0), theme.INK),
+        ("Lignes", str(summary.lines), theme.INK),
+    ],
+)
 
 if summary.unvalued_lines:
     st.warning(f"{summary.unvalued_lines} ligne(s) sur {summary.lines} ne sont pas valorisées (cours ou taux de "
@@ -46,23 +52,18 @@ if summary.unvalued_lines:
 if income_missing:
     theme.note(f"{income_missing} revenu(s) sans taux de change ne sont pas inclus dans le total sur 12 mois.")
 
-st.write("")
-left, right = st.columns(2, gap="large")
-for column, title, values in ((left, "Répartition par enveloppe", summary.by_envelope),
-                              (right, "Répartition par type d'actifs", summary.by_type)):
+left, right = st.columns(2, gap="medium")
+for column, title, values, caption, uid in (
+        (left, "Par enveloppe", summary.by_envelope, "enveloppes", "env"),
+        (right, "Par type d'actifs", summary.by_type, "types d'actifs", "typ")):
     with column:
-        st.subheader(title)
+        st.markdown(f"#### {title}")
         if values:
-            ordered = dict(sorted(values.items(), key=lambda kv: kv[1], reverse=True))
-            chart, legend = st.columns([1, 1], vertical_alignment="center")
-            chart.plotly_chart(theme.ring(ordered, masked=masked, height=260), config=theme.CHART_CONFIG,
-                               width="stretch")
-            with legend:
-                theme.legend(ordered)
+            theme.ring_card(values, masked, f"{len(values)} {caption}", uid)
         else:
             theme.note("Aucune ligne valorisée.")
 
-st.subheader("Principales lignes")
+st.markdown("#### Principales lignes")
 top = sorted([v for v in open_views if v.valuation.value_eur is not None],
              key=lambda v: v.valuation.value_eur, reverse=True)[:8]
 if top:
@@ -76,11 +77,14 @@ if top:
         "Plus-value %": v.valuation.gain_eur_pct,
         "Cours": theme.status(v.price_status),
     } for v in top])
-    theme.table(frame, {
+    theme.hint("Cliquez sur une ligne pour ouvrir la fiche de l'instrument.")
+    picked = theme.table(frame, {
         "Valeur": lambda x: theme.money(x, masked=masked),
         "Poids": lambda x: theme.pct(x, 1, signed=False),
         "Plus-value": lambda x: theme.money(x, masked=masked, signed=True),
         "Plus-value %": theme.pct,
-    }, gains=["Plus-value", "Plus-value %"])
+    }, gains=["Plus-value", "Plus-value %"], key="dashboard_top")
+    if picked is not None:
+        fiche.show(top[picked].instrument.id)
 else:
     theme.note("Aucune ligne valorisée pour l'instant : lancez une actualisation.")

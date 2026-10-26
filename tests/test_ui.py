@@ -81,3 +81,35 @@ def test_masquage_des_montants(app_env):
     values = [m.value for m in at.metric]
     if values:
         assert all("••••" in v for v in values)
+
+
+def _fiche_lvmh():
+    from app.ui import fiche
+    fiche.render(7)
+
+
+def test_fiche_instrument(tmp_path, monkeypatch):
+    db = tmp_path / "ancora.db"
+    monkeypatch.setenv("ANCORA_DB_PATH", str(db))
+    monkeypatch.setenv("ANCORA_BACKUP_DIR", str(tmp_path / "backups"))
+    monkeypatch.setenv("ANCORA_LOG_DIR", str(tmp_path / "logs"))
+    settings.get_config.cache_clear()
+    upgrade_to_head(db)
+    populate(db)
+    try:
+        at = AppTest.from_function(_fiche_lvmh, default_timeout=60).run()
+        assert not at.exception, [e.value for e in at.exception]
+        assert any("LVMH" in m.value for m in at.markdown)
+    finally:
+        settings.get_config.cache_clear()
+        dispose_engine(db)
+
+
+def test_anneau_dans_la_da_du_logo():
+    import re
+
+    from app.ui.theme import ring_svg
+
+    svg = ring_svg([50, 30, 20], uid="t")
+    assert re.findall(r'stroke-opacity="([\d.]+)"', svg) == ["1.0", "0.62", "0.34"]  # opacités du logo
+    assert svg.count('stroke-linecap="round"') == 3
