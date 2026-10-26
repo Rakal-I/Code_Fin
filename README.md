@@ -235,6 +235,25 @@ référence (CAC 40, Euro Stoxx 50, S&P 500, Nasdaq, MSCI World, MSCI EM).
 > elle est chiffrée dans le compte correspondant (même identifiant, même mot de passe), vérifiée,
 > puis supprimée en clair ; ses sauvegardes sont chiffrées de la même façon.
 
+### Héberger sur GitHub (Codespaces)
+
+GitHub Pages ne peut pas faire tourner Ancora (il faut un serveur Python). **GitHub Codespaces** le peut :
+un mini-serveur privé, lancé depuis le dépôt, avec une adresse HTTPS réservée à votre compte GitHub.
+
+1. Sur la page du dépôt : **Code › Codespaces › Create codespace on main** (60 h gratuites par mois
+   avec un compte personnel).
+2. Attendez le démarrage (2 à 3 minutes la première fois) : Ancora s'ouvre dans le navigateur.
+   Sinon, onglet **Ports** : port 8501 = ordinateur, port 8502 = téléphone.
+3. Sur l'iPhone : ouvrez l'adresse du port 8502 dans Safari (connecté à GitHub), puis
+   *Partager › Sur l'écran d'accueil*.
+
+Les ports restent **privés** (ne les passez jamais en « public » : ce sont vos données). L'adresse en
+HTTPS permet aussi la connexion Apple et Google. Le Codespace s'endort après 30 min d'inactivité et
+**garde vos données tant qu'il existe** : le supprimer efface vos comptes et la clé de chiffrement.
+Faites donc des sauvegardes (*Administration › Sauvegardes*) et notez la clé de secours
+(`python scripts/cle_de_secours.py`). Pour des données réelles à long terme, l'installation sur votre
+propre ordinateur reste la plus sûre.
+
 **Premiers pas**
 
 0. **Créez votre compte** : *Continuer avec Apple*, *Continuer avec Google* (voir
