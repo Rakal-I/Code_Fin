@@ -25,7 +25,7 @@ Deux interfaces partagent la même base et les mêmes règles de calcul :
 > ou de vente.
 
 <!-- AUTO:META:START -->
-> 🔄 **Dernière mise à jour :** 26/10/2026 17:40 (heure de Paris) · commit `236a1b7` · 19 commits au total
+> 🔄 **Dernière mise à jour :** 26/10/2026 18:03 (heure de Paris) · commit `378eeb7` · 20 commits au total
 <!-- AUTO:META:END -->
 
 ---
@@ -490,15 +490,15 @@ Code_Fin/
 | Autres | 20 | 64 |
 | Markdown | 3 | 846 |
 | TOML | 3 | 44 |
-| JavaScript | 2 | 769 |
+| JavaScript | 2 | 818 |
 | Texte | 2 | 23 |
 | YAML | 2 | 71 |
-| CSS | 1 | 348 |
+| CSS | 1 | 353 |
 | HTML | 1 | 63 |
 | INI | 1 | 29 |
 | JSON | 1 | 12 |
 | Shell | 1 | 17 |
-| **Total** | **112** | **9382** |
+| **Total** | **112** | **9436** |
 
 **Tests automatisés détectés :** 94
 
@@ -525,6 +525,7 @@ Code_Fin/
 <!-- AUTO:COMMITS:START -->
 | Commit | Date | Auteur | Message |
 |---|---|---|---|
+| `378eeb7` | 26/10/2026 | Claude | Corrige les bugs d'affichage et de navigation de l'app téléphone |
 | `236a1b7` | 26/10/2026 | Claude | Remplace Google/Apple par la connexion Face ID / Touch ID (clés d'accès) |
 | `9cba7e9` | 26/10/2026 | Claude | Merge branch 'main' of https://github.com/Rakal-I/Code_Fin |
 | `8c2cdf3` | 26/10/2026 | Claude | Ajoute le logo partout : favicons, icônes iPhone/Android, aperçu de partage |
@@ -534,7 +535,6 @@ Code_Fin/
 | `b4a60f3` | 26/10/2026 | Claude | Ajoute la configuration GitHub Codespaces pour héberger Ancora |
 | `44300b3` | 26/10/2026 | Claude | Ajoute la connexion Google et Apple, et chiffre les données de chaque compte |
 | `f887633` | 26/10/2026 | Claude | Ajoute une connexion obligatoire sur l'ordinateur et le téléphone |
-| `b0679e5` | 26/10/2026 | Claude | Passe les deux interfaces au style « Liquid Glass » et aligne les graphiques sur le logo |
 <!-- AUTO:COMMITS:END -->
 
 ---
