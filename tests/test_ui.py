@@ -5,19 +5,19 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from app.config import settings
-from app.database.engine import dispose_engine, session_scope, upgrade_to_head
 from app.models.enums import EnvelopeType, InstrumentType, OperationType
 from app.models.schemas import EnvelopeIn, InstrumentIn, OperationIn, PositionIn
 from app.services import market_data, portfolio, referential
-from tests.conftest import FakeConnector
+from app.services.workspace import Workspace
+from app.ui.context import ACCOUNT_KEY
+from tests.conftest import PASSWORD, USER, FakeConnector, make_account
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGES = sorted((ROOT / "app" / "pages").glob("*.py"))
 
 
-def populate(db_path: Path) -> None:
-    with session_scope(db_path) as s:
+def populate(ws: Workspace) -> None:
+    with ws.session() as s:
         referential.seed_default_indices(s)
         pea = referential.create_envelope(s, EnvelopeIn(name="PEA", type=EnvelopeType.PEA, institution="Banque",
                                                         contract="P-1"))
@@ -49,35 +49,34 @@ def populate(db_path: Path) -> None:
 
 
 @pytest.fixture(params=["vide", "remplie"])
-def app_env(request, tmp_path, monkeypatch):
-    db = tmp_path / "ancora.db"
-    monkeypatch.setenv("ANCORA_DB_PATH", str(db))
-    monkeypatch.setenv("ANCORA_BACKUP_DIR", str(tmp_path / "backups"))
-    monkeypatch.setenv("ANCORA_LOG_DIR", str(tmp_path / "logs"))
-    settings.get_config.cache_clear()
-    upgrade_to_head(db)
+def app_env(request, app_config):
+    ws = make_account(app_config)
     if request.param == "remplie":
-        populate(db)
-    yield db
-    settings.get_config.cache_clear()
-    dispose_engine(db)
+        populate(ws)
+    return ws
+
+
+def run_as(at: AppTest, ws: Workspace) -> AppTest:
+    """Session déjà connectée au compte de ws."""
+    at.session_state[ACCOUNT_KEY] = ws.account_id
+    return at.run()
 
 
 @pytest.mark.parametrize("page", PAGES, ids=lambda p: p.stem)
 def test_page_sans_exception(app_env, page):
-    at = AppTest.from_file(str(page), default_timeout=60).run()
+    at = run_as(AppTest.from_file(str(page), default_timeout=60), app_env)
     assert not at.exception, [e.value for e in at.exception]
 
 
 def test_point_d_entree(app_env):
-    at = AppTest.from_file(str(ROOT / "streamlit_app.py"), default_timeout=60).run()
+    at = run_as(_main(), app_env)
     assert not at.exception, [e.value for e in at.exception]
 
 
 def test_masquage_des_montants(app_env):
     at = AppTest.from_file(str(ROOT / "app" / "pages" / "dashboard.py"), default_timeout=60)
     at.session_state["mask_amounts"] = True
-    at.run()
+    run_as(at, app_env)
     values = [m.value for m in at.metric]
     if values:
         assert all("••••" in v for v in values)
@@ -88,21 +87,12 @@ def _fiche_lvmh():
     fiche.render(7)
 
 
-def test_fiche_instrument(tmp_path, monkeypatch):
-    db = tmp_path / "ancora.db"
-    monkeypatch.setenv("ANCORA_DB_PATH", str(db))
-    monkeypatch.setenv("ANCORA_BACKUP_DIR", str(tmp_path / "backups"))
-    monkeypatch.setenv("ANCORA_LOG_DIR", str(tmp_path / "logs"))
-    settings.get_config.cache_clear()
-    upgrade_to_head(db)
-    populate(db)
-    try:
-        at = AppTest.from_function(_fiche_lvmh, default_timeout=60).run()
-        assert not at.exception, [e.value for e in at.exception]
-        assert any("LVMH" in m.value for m in at.markdown)
-    finally:
-        settings.get_config.cache_clear()
-        dispose_engine(db)
+def test_fiche_instrument(app_config):
+    ws = make_account(app_config)
+    populate(ws)
+    at = run_as(AppTest.from_function(_fiche_lvmh, default_timeout=60), ws)
+    assert not at.exception, [e.value for e in at.exception]
+    assert any("LVMH" in m.value for m in at.markdown)
 
 
 def test_anneau_dans_la_da_du_logo():
@@ -116,38 +106,75 @@ def test_anneau_dans_la_da_du_logo():
 
 
 def _main() -> AppTest:
-    return AppTest.from_file(str(ROOT / "streamlit_app.py"), default_timeout=60)
+    return AppTest.from_file(str(ROOT / "interface.py"), default_timeout=60)
 
 
-def test_connexion_ordinateur(tmp_path, monkeypatch):
-    """Premier lancement : création de l'accès ; ensuite, connexion obligatoire."""
-    db = tmp_path / "ancora.db"
-    monkeypatch.setenv("ANCORA_DB_PATH", str(db))
-    monkeypatch.setenv("ANCORA_BACKUP_DIR", str(tmp_path / "backups"))
-    monkeypatch.setenv("ANCORA_LOG_DIR", str(tmp_path / "logs"))
-    settings.get_config.cache_clear()
-    try:
-        at = _main().run()
-        assert not at.exception
-        assert any("Créer mon accès" in b.label for b in at.button)
-        assert not any("Tableau de bord" in t.value for t in at.title)  # aucune donnée avant connexion
-        at.text_input[0].input("proprietaire")
-        at.text_input[1].input("Patrimoine2026")
-        at.text_input[2].input("Patrimoine2026")
-        at.button[0].click().run()
-        assert not at.exception
-        assert at.session_state["auth_user"] == "proprietaire"
+def _button(at: AppTest, label: str):
+    return next(b for b in at.button if label in b.label)
 
-        # Nouvelle session navigateur : il faut se connecter.
-        at = _main().run()
-        assert any("Se connecter" in b.label for b in at.button)
-        at.text_input[0].input("proprietaire")
-        at.text_input[1].input("mauvais")
-        at.button[0].click().run()
-        assert any("incorrect" in e.value for e in at.error)
-        at.text_input[1].input("Patrimoine2026")
-        at.button[0].click().run()
-        assert not at.exception and at.session_state["auth_user"] == "proprietaire"
-    finally:
-        settings.get_config.cache_clear()
-        dispose_engine(db)
+
+def test_connexion_ordinateur(app_config):
+    """Premier lancement : création d'un compte ; ensuite, connexion obligatoire."""
+    at = _main().run()
+    assert not at.exception
+    assert any("Créer mon compte" in b.label for b in at.button)
+    assert any("Continuer avec Apple" in m.value and "Continuer avec Google" in m.value for m in at.markdown)
+    assert not any("Tableau de bord" in t.value for t in at.title)  # aucune donnée avant connexion
+    at.text_input[0].input(USER)
+    at.text_input[1].input(PASSWORD)
+    at.text_input[2].input(PASSWORD)
+    _button(at, "Créer mon compte").click().run()
+    assert not at.exception
+    assert at.session_state[ACCOUNT_KEY] is not None
+
+    # Nouvelle session navigateur : il faut se connecter.
+    at = _main().run()
+    assert any("Se connecter" in b.label for b in at.button)
+    at.text_input[0].input(USER)
+    at.text_input[1].input("mauvais")
+    _button(at, "Se connecter").click().run()
+    assert any("incorrect" in e.value for e in at.error)
+    at.text_input[1].input(PASSWORD)
+    _button(at, "Se connecter").click().run()
+    assert not at.exception and at.session_state[ACCOUNT_KEY] is not None
+
+    # Un second compte se crée depuis l'écran de connexion, avec ses propres données.
+    at = _main().run()
+    _button(at, "Créer un compte").click().run()
+    at.text_input[0].input("conjoint")
+    at.text_input[1].input("Conjoint2026")
+    at.text_input[2].input("Conjoint2026")
+    _button(at, "Créer mon compte").click().run()
+    assert not at.exception
+
+
+def test_premiere_connexion_google_sur_l_ordinateur(app_config):
+    """Retour de Google sans compte associé : création d'un compte Ancora lié à cette identité."""
+    from app.services import auth, workspace
+
+    at = _main()
+    at.session_state["auth_pending"] = {"provider": "google", "subject": "g-42", "email": "camille@exemple.fr",
+                                        "name": "Camille"}
+    at.run()
+    assert any("Presque terminé" in m.value for m in at.markdown)
+    _button(at, "Créer mon compte Ancora").click().run()
+    assert not at.exception
+    with workspace.directory(app_config) as d:
+        identity = auth.find_identity(d, "google", "g-42")
+        assert identity.account_id == at.session_state[ACCOUNT_KEY]
+        assert identity.account.name == "Camille" and identity.account.password_hash is None
+
+
+def test_association_google_a_un_compte_existant(app_config):
+    from app.services import auth, workspace
+
+    ws = make_account(app_config)
+    at = _main()
+    at.session_state["auth_pending"] = {"provider": "google", "subject": "g-7", "email": None, "name": None}
+    at.run()
+    at.text_input[0].input(USER)
+    at.text_input[1].input(PASSWORD)
+    _button(at, "Associer Google").click().run()
+    assert not at.exception and at.session_state[ACCOUNT_KEY] == ws.account_id
+    with workspace.directory(app_config) as d:
+        assert auth.find_identity(d, "google", "g-7").account_id == ws.account_id

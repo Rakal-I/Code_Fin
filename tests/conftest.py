@@ -6,11 +6,13 @@ from pathlib import Path
 
 import pytest
 
+from app.config import settings
 from app.connectors.base import ConnectorError, FetchedBar, FetchedValue, InstrumentRef, PriceHistory
+from app.database import engine as db_engine
 from app.database.engine import dispose_engine, session_factory, upgrade_to_head
 from app.models.enums import DataField, DataStatus, EnvelopeType, InstrumentType
 from app.models.schemas import EnvelopeIn, InstrumentIn
-from app.services import referential
+from app.services import referential, vault, workspace
 
 TODAY = date(2026, 10, 23)
 
@@ -53,6 +55,51 @@ class FakeConnector:
             FetchedValue(field=DataField.EPS, status=DataStatus.REELLE, value_num=5.0, fiscal_year=2025,
                          reference_date=date(2025, 12, 31)),
         ]
+
+
+MASTER_KEY = "5a" * 32
+USER, PASSWORD = "proprietaire", "Patrimoine2026"
+
+
+@pytest.fixture(autouse=True)
+def _cle_maitre(monkeypatch):
+    """Clé maître de test : jamais le trousseau ni ~/.ancora de la machine."""
+    monkeypatch.setenv("ANCORA_MASTER_KEY", MASTER_KEY)
+    vault.master_key.cache_clear()
+    yield
+    vault.master_key.cache_clear()
+
+
+@pytest.fixture
+def app_config(tmp_path: Path, monkeypatch):
+    """Dossiers de l'application (données, sauvegardes, journaux) dans un répertoire temporaire."""
+    monkeypatch.setenv("ANCORA_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ANCORA_BACKUP_DIR", str(tmp_path / "backups"))
+    monkeypatch.setenv("ANCORA_LOG_DIR", str(tmp_path / "logs"))
+    monkeypatch.setenv("ANCORA_KEY_FILE", str(tmp_path / "cle-maitre"))
+    settings.get_config.cache_clear()
+    yield settings.get_config()
+    settings.get_config.cache_clear()
+    for path in list(db_engine._engines):
+        if tmp_path in path.parents:
+            dispose_engine(path)
+
+
+def make_account(config, username: str | None = USER, password: str = PASSWORD, **fields) -> workspace.Workspace:
+    """Crée un compte (identifiant + mot de passe, ou Google / Apple seul si username=None)."""
+    with workspace.directory(config) as d:
+        if username is None:
+            account = workspace.create_account(config, d, **fields)
+        else:
+            account = workspace.create_account(config, d, username=username, password=password,
+                                               confirmation=password, **fields)
+        return workspace.open_workspace(config, account)
+
+
+@pytest.fixture
+def directory(app_config):
+    with workspace.directory(app_config) as d:
+        yield d
 
 
 @pytest.fixture

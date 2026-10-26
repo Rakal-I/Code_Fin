@@ -41,11 +41,11 @@ ARCHITECTURE = [
     ("app", "Paquet de l'application (point d'entrée : streamlit_app.py)"),
     ("pages", "Pages et tableaux de bord Streamlit"),
     ("domain", "Règles métier : PRU, valorisation, plus-values, devises"),
-    ("services", "Orchestration : actualisation, sauvegarde, archivage"),
+    ("services", "Orchestration : actualisation, sauvegarde, comptes, chiffrement, connexion"),
     ("connectors", "Fournisseurs de données : yfinance, Finnhub, SEC EDGAR, saisie manuelle"),
     ("models", "Modèles SQLAlchemy et schémas Pydantic"),
-    ("database", "Accès SQLite et gestion des sessions"),
-    ("config", "Paramètres de l'application (clés API hors dépôt)"),
+    ("database", "Accès SQLite chiffré (SQLCipher) et gestion des sessions"),
+    ("config", "Paramètres de l'application (clés API et identifiants Google / Apple hors dépôt)"),
     ("tests", "Tests automatisés"),
     ("migrations", "Migrations de schéma Alembic"),
 ]
@@ -60,6 +60,8 @@ STACK = [
     ("Plotly", "plotly"),
     ("yfinance", "yfinance"),
     ("FastAPI (téléphone)", "fastapi"),
+    ("SQLCipher (chiffrement)", "sqlcipher3-wheels"),
+    ("PyJWT (Google, Apple)", "pyjwt"),
 ]
 
 LANGUAGES = {

@@ -345,3 +345,22 @@ body.locked { padding-bottom: 0; }
 .shake { animation: shake .4s cubic-bezier(.36, .07, .19, .97); }
 @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
 .destructive { color: var(--loss) !important; font-weight: 600; }
+
+/* Continuer avec Apple / Google (chartes Apple et Google : noir/blanc, logo Google en couleurs) */
+.sso { display: flex; flex-direction: column; gap: 10px; }
+.sso a {
+  display: flex; align-items: center; justify-content: center; gap: 8px; height: 50px; border-radius: 14px;
+  font-size: 17px; font-weight: 600; letter-spacing: -.2px; text-decoration: none;
+  transition: transform .15s ease, opacity .15s;
+}
+.sso a:active { transform: scale(.97); opacity: .85; }
+.sso a svg { width: 19px; height: 19px; }
+.sso-apple { background: #000; color: #fff; }
+.sso-apple svg { margin-top: -3px; }
+.sso-google { background: #fff; color: #1F1F1F; border: 0.5px solid #DADCE0; }
+@media (prefers-color-scheme: dark) {
+  .sso-apple { background: #fff; color: #000; }
+  .sso-google { background: #131314; color: #E3E3E3; border-color: #8E918F; }
+}
+.or { display: flex; align-items: center; gap: 12px; color: var(--secondary); font-size: 13px; margin: 18px 0 14px; }
+.or::before, .or::after { content: ""; flex: 1; height: 0.5px; background: var(--separator, rgba(128,128,128,.35)); }

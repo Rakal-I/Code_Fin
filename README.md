@@ -59,12 +59,13 @@ Calculé à partir des cases cochées dans [`docs/ROADMAP.md`](docs/ROADMAP.md).
 |---|---|---|
 | Version 1 — MVP | `██████████` 100 % | 17/17 |
 | Critères de recette | `██████████` 100 % | 13/13 |
+| Comptes et sécurité | `████████░░` 80 % | 4/5 |
 | Version 2 — Nouveaux actifs | `░░░░░░░░░░` 0 % | 0/3 |
 | Version 3 — Imports | `░░░░░░░░░░` 0 % | 0/2 |
 | Version 4 — Mobilité | `███░░░░░░░` 33 % | 1/3 |
 | Application iOS native (App Store) | `░░░░░░░░░░` 0 % | 0/6 |
 | Version 5 — Assistant | `░░░░░░░░░░` 0 % | 0/2 |
-| **Total** | `███████░░░` 67 % | **31/46** |
+| **Total** | `███████░░░` 69 % | **35/51** |
 <!-- AUTO:PROGRESS:END -->
 
 ---
@@ -184,14 +185,16 @@ libellé du statut est toujours affiché.
 
 ## 🏗️ Stack technique et architecture
 
-**Technologies :** Python 3.11+ · Streamlit · SQLite · SQLAlchemy · Alembic ·
-Pandas · Pydantic · Plotly · yfinance · FastAPI (version téléphone).
+**Technologies :** Python 3.11+ · Streamlit · SQLite (SQLCipher) · SQLAlchemy · Alembic ·
+Pandas · Pydantic · Plotly · yfinance · FastAPI (version téléphone) · OpenID Connect (Google, Apple).
 
-Le point d'entrée est [`streamlit_app.py`](streamlit_app.py), à la racine. Les dossiers de
+Le point d'entrée est [`streamlit_app.py`](streamlit_app.py), à la racine : il sert le script
+[`interface.py`](interface.py) et ajoute les routes de connexion Google / Apple (`app/web/`). Les dossiers de
 l'architecture cible sont regroupés dans le paquet `app/` ; `tests/` et `migrations/` sont à la racine.
 La version téléphone vit dans `app/mobile/` : une API JSON (FastAPI) qui réutilise les services,
 et une web-app statique (HTML, CSS, JavaScript sans dépendance) dans `app/mobile/static/`.
-La base SQLite est en mode WAL : les deux interfaces la lisent pendant qu'une actualisation écrit.
+Chaque compte a sa base SQLite chiffrée (SQLCipher), en mode WAL : les deux interfaces la lisent
+pendant qu'une actualisation écrit.
 
 État de l'architecture cible (§19 du cahier des charges), recalculé à chaque push :
 
@@ -201,11 +204,11 @@ La base SQLite est en mode WAL : les deux interfaces la lisent pendant qu'une ac
 | `app/` | Paquet de l'application (point d'entrée : streamlit_app.py) | ✅ Présent | 12 |
 | `app/pages/` | Pages et tableaux de bord Streamlit | ✅ Présent | 8 |
 | `app/domain/` | Règles métier : PRU, valorisation, plus-values, devises | ✅ Présent | 5 |
-| `app/services/` | Orchestration : actualisation, sauvegarde, archivage | ✅ Présent | 7 |
+| `app/services/` | Orchestration : actualisation, sauvegarde, comptes, chiffrement, connexion | ✅ Présent | 7 |
 | `app/connectors/` | Fournisseurs de données : yfinance, Finnhub, SEC EDGAR, saisie manuelle | ✅ Présent | 6 |
 | `app/models/` | Modèles SQLAlchemy et schémas Pydantic | ✅ Présent | 4 |
-| `app/database/` | Accès SQLite et gestion des sessions | ✅ Présent | 2 |
-| `config/`, `app/config/` | Paramètres de l'application (clés API hors dépôt) | ✅ Présent | 2 |
+| `app/database/` | Accès SQLite chiffré (SQLCipher) et gestion des sessions | ✅ Présent | 2 |
+| `config/`, `app/config/` | Paramètres de l'application (clés API et identifiants Google / Apple hors dépôt) | ✅ Présent | 2 |
 | `tests/` | Tests automatisés | ✅ Présent | 8 |
 | `migrations/` | Migrations de schéma Alembic | ✅ Présent | 3 |
 <!-- AUTO:ARCHITECTURE:END -->
@@ -223,14 +226,21 @@ pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
 
-L'application s'ouvre sur http://localhost:8501. Au premier lancement, elle crée la base
-`data/ancora.db` (migrations Alembic appliquées automatiquement) et ajoute les indices de
+L'application s'ouvre sur http://localhost:8501. Au premier lancement, elle crée la clé maître,
+l'annuaire chiffré des comptes (`data/annuaire.db`) puis, pour chaque compte, sa base chiffrée
+(`data/comptes/<id>.db`, migrations Alembic appliquées automatiquement) avec les indices de
 référence (CAC 40, Euro Stoxx 50, S&P 500, Nasdaq, MSCI World, MSCI EM).
+
+> Une base `data/ancora.db` d'une version précédente (non chiffrée) est reprise automatiquement :
+> elle est chiffrée dans le compte correspondant (même identifiant, même mot de passe), vérifiée,
+> puis supprimée en clair ; ses sauvegardes sont chiffrées de la même façon.
 
 **Premiers pas**
 
-0. **Créez votre accès** : au premier lancement, Ancora demande un identifiant et un mot de passe.
-   Ils protègent l'ordinateur et le téléphone.
+0. **Créez votre compte** : *Continuer avec Apple*, *Continuer avec Google* (voir
+   [Connexion avec Google et Apple](#connexion-avec-google-et-apple)) ou un identifiant et un mot de passe.
+   Chaque membre du foyer peut avoir son compte : les données de chacun sont séparées et chiffrées
+   avec leur propre clé.
 1. *Administration › Enveloppes* : créez vos enveloppes (PEA, assurance-vie, CTO…).
 2. *Administration › Instruments* : ajoutez vos instruments. Pour Yahoo Finance, le
    « symbole fournisseur » porte le suffixe de la place (`MC.PA` pour Paris, `ASML.AS`
@@ -239,18 +249,45 @@ référence (CAC 40, Euro Stoxx 50, S&P 500, Nasdaq, MSCI World, MSCI EM).
 4. **Actualiser tout** (barre latérale) : cours, historiques, fondamentaux et taux de change.
 5. *Saisie › Opération* : enregistrez ensuite vos achats, ventes, dividendes, apports…
 
-**Essayer avec des données fictives** (base séparée, cours réels) :
+**Essayer avec des données fictives** (dossier séparé, cours réels ; compte `demo` / `Ancora2026`) :
 
 ```bash
-python scripts/demo_data.py data/demo.db
-ANCORA_DB_PATH=data/demo.db streamlit run streamlit_app.py
+ANCORA_DATA_DIR=data/demo python scripts/demo_data.py
+ANCORA_DATA_DIR=data/demo streamlit run streamlit_app.py
 ```
 
 **Sources optionnelles** : copiez [`config/secrets.example.toml`](config/secrets.example.toml) en
-`config/secrets.toml` (jamais versionné) pour activer Finnhub et SEC EDGAR.
+`config/secrets.toml` (jamais versionné) pour activer Finnhub, SEC EDGAR et la connexion Google / Apple.
 
-**Variables d'environnement** : `ANCORA_DB_PATH`, `ANCORA_BACKUP_DIR`, `ANCORA_LOG_DIR`,
-`FINNHUB_API_KEY`, `SEC_USER_AGENT`.
+**Variables d'environnement** : `ANCORA_DATA_DIR`, `ANCORA_BACKUP_DIR`, `ANCORA_LOG_DIR`,
+`ANCORA_KEY_FILE`, `ANCORA_MASTER_KEY`, `FINNHUB_API_KEY`, `SEC_USER_AGENT`,
+`ANCORA_GOOGLE_CLIENT_ID`, `ANCORA_GOOGLE_CLIENT_SECRET`, `ANCORA_APPLE_CLIENT_ID`,
+`ANCORA_APPLE_TEAM_ID`, `ANCORA_APPLE_KEY_ID`, `ANCORA_APPLE_PRIVATE_KEY_PATH`.
+
+### Connexion avec Google et Apple
+
+Les boutons sont toujours affichés ; tant qu'un fournisseur n'est pas configuré, ils expliquent quoi
+faire. *Administration › Paramètres › Connexion Google et Apple* indique l'état et les adresses de
+retour exactes à déclarer.
+
+| | Google | Apple |
+|---|---|---|
+| Où | [console.cloud.google.com](https://console.cloud.google.com) › API et services › Identifiants › *ID client OAuth* (« Application Web ») | [developer.apple.com](https://developer.apple.com) › Identifiers › *Services ID* (Sign in with Apple) + *Keys* (fichier `.p8`) |
+| Coût | Gratuit | Compte Apple Developer (99 $/an) |
+| Adresse de retour | `http://localhost:8501/connexion/google/retour` (ordinateur) et `https://<adresse du téléphone>/connexion/google/retour` | HTTPS avec nom de domaine uniquement : `https://<adresse>/connexion/apple/retour` (pas de localhost) |
+| À renseigner | `[google]` `client_id`, `client_secret` | `[apple]` `client_id` (Services ID), `team_id`, `key_id`, `private_key_path` |
+
+Fonctionnement :
+
+- Ancora ne reçoit jamais votre mot de passe Google ou Apple. Il reconnaît votre compte par
+  l'identifiant stable du fournisseur (jamais par l'adresse e-mail), après avoir vérifié la signature
+  du jeton d'identité, son destinataire, son émetteur et son *nonce*. La demande est protégée par un
+  `state` lié au navigateur et par PKCE (Google).
+- Première connexion sur l'ordinateur : Ancora propose de **créer un compte** ou de **l'associer à votre
+  compte existant** (identifiant et mot de passe). Associer ou dissocier ensuite : *Administration ›
+  Paramètres › Sécurité*.
+- Sur le téléphone, Google et Apple ne connectent qu'à un compte déjà associé : les comptes se créent
+  sur l'ordinateur.
 
 **Tests** (aucun appel réseau : un fournisseur simulé est utilisé) :
 
@@ -296,8 +333,9 @@ pour un usage personnel) :
 3. Sur l'iPhone, ouvrez cette adresse dans Safari, puis **Partager › Sur l'écran d'accueil** :
    Ancora s'ouvre ensuite comme une app, avec son icône.
 
-Le téléphone demande l'identifiant et le mot de passe créés sur l'ordinateur ; la session reste
-ouverte 30 jours. L'iPhone peut les proposer depuis le trousseau iCloud (Face ID).
+Le téléphone propose *Continuer avec Apple*, *Continuer avec Google* ou l'identifiant et le mot de
+passe créés sur l'ordinateur ; la session reste ouverte 30 jours. L'iPhone peut les proposer depuis
+le trousseau iCloud (Face ID). Chaque session n'ouvre que la base du compte connecté.
 
 > ⚠️ Le serveur n'écoute que sur l'ordinateur (127.0.0.1). Même avec la connexion, préférez Tailscale
 > ou Cloudflare Tunnel + Access à l'ouverture d'un port sur votre réseau : deux protections valent mieux qu'une.
@@ -405,11 +443,11 @@ Code_Fin/
 │   └── test_ui.py
 ├── .gitignore
 ├── alembic.ini
+├── interface.py
 ├── pyproject.toml
 ├── README.md
 ├── requirements-dev.txt
-├── requirements.txt
-└── … (+1 éléments)
+└── … (+2 éléments)
 ```
 <!-- AUTO:STRUCTURE:END -->
 
@@ -420,19 +458,19 @@ Code_Fin/
 <!-- AUTO:STATS:START -->
 | Langage | Fichiers | Lignes (hors vides) |
 |---|---|---|
-| Python | 62 | 5767 |
+| Python | 63 | 6366 |
 | Autres | 10 | 61 |
-| Markdown | 3 | 783 |
-| TOML | 3 | 44 |
-| Texte | 2 | 18 |
+| Markdown | 3 | 833 |
+| TOML | 3 | 58 |
+| Texte | 2 | 23 |
 | YAML | 2 | 71 |
-| CSS | 1 | 317 |
+| CSS | 1 | 335 |
 | HTML | 1 | 58 |
 | INI | 1 | 29 |
-| JavaScript | 1 | 641 |
-| **Total** | **86** | **7789** |
+| JavaScript | 1 | 669 |
+| **Total** | **87** | **8503** |
 
-**Tests automatisés détectés :** 79
+**Tests automatisés détectés :** 89
 
 **Stack cible** (dépendances lues dans `requirements*.txt` / `pyproject.toml`) :
 
@@ -446,6 +484,8 @@ Code_Fin/
 | Plotly | `plotly` | ✅ |
 | yfinance | `yfinance` | ✅ |
 | FastAPI (téléphone) | `fastapi` | ✅ |
+| SQLCipher (chiffrement) | `sqlcipher3-wheels` | ✅ |
+| PyJWT (Google, Apple) | `pyjwt` | ✅ |
 <!-- AUTO:STATS:END -->
 
 ---
@@ -498,17 +538,30 @@ Constats lors des essais :
 
 ## 🔒 Sécurité et confidentialité
 
-- Données stockées **uniquement en local** (base SQLite).
+- Données stockées **uniquement en local**, **chiffrées** (SQLCipher, AES-256 avec authentification
+  HMAC de chaque page) :
+  - une base par compte, avec sa propre clé aléatoire ; les sauvegardes sont chiffrées avec la même clé ;
+  - les clés des comptes sont conservées dans l'annuaire, enveloppées (AES-256-GCM) par la **clé maître** ;
+    l'annuaire lui-même est chiffré par une clé dérivée de la clé maître ;
+  - la clé maître est rangée dans le trousseau du système (Trousseau macOS, Gestionnaire
+    d'identification Windows) ou, à défaut, dans `~/.ancora/cle-maitre` (lisible par vous seul),
+    **jamais dans le dossier du projet ni dans les sauvegardes** ;
+  - **clé de secours** : `python scripts/cle_de_secours.py` l'affiche ; notez-la hors de l'ordinateur.
+    Sans elle, des sauvegardes copiées sur un autre ordinateur ne peuvent pas être ouvertes
+    (`ANCORA_MASTER_KEY=<clé>` pour les y utiliser) ;
+  - ce chiffrement protège les fichiers (copie, sauvegarde synchronisée, disque perdu) ; il ne protège
+    pas contre quelqu'un qui utilise votre session ouverte sur l'ordinateur.
 - Clés API protégées et jamais versionnées (voir [`.gitignore`](.gitignore)).
 - **Aucune** transmission des positions aux fournisseurs de données.
 - Possibilité de masquer les montants à l'écran.
 - Aucune donnée sensible dans les logs.
-- **Connexion obligatoire** sur l'ordinateur et le téléphone (compte unique, créé au premier lancement) :
+- **Connexion obligatoire** sur l'ordinateur et le téléphone (Apple, Google ou mot de passe ; plusieurs
+  comptes possibles, chacun ne voit que ses données) :
   - mot de passe jamais stocké, seulement son empreinte *scrypt* salée ;
   - après 5 essais ratés, connexion bloquée 1 min, puis 2, 4… jusqu'à 60 min ;
   - ordinateur : verrouillage après 30 min d'inactivité ; téléphone : session de 30 jours dans un
     cookie `HttpOnly` et `SameSite=Strict`, dont la base ne garde que l'empreinte ;
-  - changer de mot de passe (*Administration › Paramètres*) déconnecte tous les téléphones ;
+  - changer de mot de passe (*Administration › Paramètres*) déconnecte les téléphones de ce compte ;
   - mot de passe oublié : `python scripts/reset_password.py` sur l'ordinateur (vos données sont conservées).
 
 ---

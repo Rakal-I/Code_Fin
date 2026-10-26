@@ -1,10 +1,11 @@
-"""Crée une base de démonstration (positions fictives, cours réels) pour découvrir Ancora.
+"""Crée un compte de démonstration (positions fictives, cours réels) pour découvrir Ancora.
 
-Usage :
-    python scripts/demo_data.py data/demo.db
-    ANCORA_DB_PATH=data/demo.db streamlit run app/main.py
+Usage (dans un dossier de données séparé, pour ne pas mélanger avec vos comptes) :
+    ANCORA_DATA_DIR=data/demo python scripts/demo_data.py [identifiant] [mot de passe]
+    ANCORA_DATA_DIR=data/demo streamlit run streamlit_app.py
 
-N'utilisez jamais votre base réelle comme cible : ce script ajoute des positions fictives.
+Identifiant « demo » et mot de passe « Ancora2026 » par défaut. Comme tout compte, ses données
+sont chiffrées avec sa propre clé.
 """
 import sys
 from datetime import date
@@ -12,20 +13,23 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from app.bootstrap import bootstrap  # noqa: E402
 from app.config.settings import get_config  # noqa: E402
 from app.connectors.registry import build_connectors  # noqa: E402
-from app.database.engine import session_scope, upgrade_to_head  # noqa: E402
 from app.models.enums import EnvelopeType, InstrumentSubtype, InstrumentType, OperationType  # noqa: E402
 from app.models.schemas import EnvelopeIn, InstrumentIn, OperationIn, PositionIn  # noqa: E402
-from app.services import market_data, portfolio, referential  # noqa: E402
+from app.services import auth, market_data, portfolio, referential, workspace  # noqa: E402
 
 
-def main(target: Path) -> None:
-    if target.exists():
-        sys.exit(f"{target} existe déjà : choisissez un nouveau fichier.")
-    upgrade_to_head(target)
-    with session_scope(target) as s:
-        referential.seed_default_indices(s)
+def main(username: str, password: str) -> None:
+    config = get_config()
+    bootstrap(config)
+    with workspace.directory(config) as d:
+        if auth.find_by_username(d, username):
+            sys.exit(f"Le compte « {username} » existe déjà : choisissez un autre identifiant.")
+        account = workspace.create_account(config, d, username=username, password=password, confirmation=password)
+        ws = workspace.open_workspace(config, account)
+    with ws.session() as s:
         pea = referential.create_envelope(s, EnvelopeIn(name="PEA", type=EnvelopeType.PEA,
                                                         institution="Banque Exemple", contract="PEA-0001"))
         av = referential.create_envelope(s, EnvelopeIn(name="Assurance-vie", type=EnvelopeType.ASSURANCE_VIE,
@@ -79,7 +83,8 @@ def main(target: Path) -> None:
                                           progress=lambda i, n, name: print(f"  {i}/{n} {name}"))
         failed = [r for r in results if not r.ok]
         print(f"Terminé : {len(results) - len(failed)} actualisé(s), {len(failed)} en erreur.")
+    print(f"Compte de démonstration : identifiant « {username} ».")
 
 
 if __name__ == "__main__":
-    main(Path(sys.argv[1] if len(sys.argv) > 1 else "data/demo.db"))
+    main(sys.argv[1] if len(sys.argv) > 1 else "demo", sys.argv[2] if len(sys.argv) > 2 else "Ancora2026")

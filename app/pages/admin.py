@@ -6,12 +6,14 @@ from pydantic import ValidationError
 from app.config.settings import CONSOLIDATION_CURRENCY
 from app.models.enums import SUBTYPES_BY_TYPE, EnvelopeType, InstrumentType
 from app.models.schemas import EnvelopeIn, InstrumentIn
-from app.services import auth, backup, market_data, referential
+from app.services import auth, backup, market_data, oidc, referential
 from app.services.referential import BusinessError, Preferences
-from app.ui import context, theme, views
+from app.ui import context, login, theme, views
+from app.web import connexion
 
 theme.header("Administration", "Référentiel, actualisation, sauvegardes et paramètres.", kicker="Gestion")
 cfg = context.config()
+ws = context.workspace()
 
 
 def show_errors(exc: Exception) -> None:
@@ -208,18 +210,19 @@ with tab_refresh:
 
 # --------------------------------------------------------------------------
 with tab_backup:
-    theme.note(f"Les sauvegardes sont des copies complètes de la base, avec empreinte SHA-256, rangées dans "
-               f"`{cfg.backup_dir}`. Toute restauration est précédée d'une vérification d'intégrité et d'une "
+    theme.note(f"Les sauvegardes sont des copies complètes de votre base, chiffrées avec la clé de votre compte, "
+               f"avec empreinte SHA-256, rangées dans `{ws.backup_dir}`. Toute restauration est précédée d'une "
+               "vérification d'intégrité et d'une "
                "sauvegarde automatique de la base actuelle.")
     comment = st.text_input("Commentaire (facultatif)", key="backup_comment")
     if st.button("Créer une sauvegarde", type="primary", icon=":material/backup:"):
         try:
-            entry = backup.create_backup(cfg.db_path, cfg.backup_dir, comment=comment)
+            entry = backup.create_backup(ws.db_path, ws.backup_dir, comment=comment, key=ws.key)
             st.success(f"Sauvegarde {entry.file} créée et vérifiée.")
         except backup.BackupError as exc:
             st.error(str(exc))
 
-    entries = backup.list_backups(cfg.backup_dir)
+    entries = backup.list_backups(ws.backup_dir)
     if entries:
         st.subheader("Historique des sauvegardes")
         st.dataframe(pd.DataFrame([{
@@ -232,7 +235,7 @@ with tab_backup:
         picked = by_file[st.selectbox("Sauvegarde", list(by_file))]
         c1, c2 = st.columns(2)
         if c1.button("Vérifier l'intégrité", icon=":material/verified:", width="stretch"):
-            ok, message = backup.verify_backup(cfg.backup_dir, picked)
+            ok, message = backup.verify_backup(ws.backup_dir, picked, ws.key)
             if ok:
                 st.success(message)
             else:
@@ -240,7 +243,7 @@ with tab_backup:
         confirm = c2.checkbox("Je confirme vouloir remplacer la base actuelle")
         if c2.button("Restaurer", icon=":material/restore:", width="stretch", disabled=not confirm):
             try:
-                safety = backup.restore_backup(cfg.db_path, cfg.backup_dir, picked)
+                safety = backup.restore_backup(ws.db_path, ws.backup_dir, picked, ws.key)
                 st.success(f"Base restaurée depuis {picked.file}. Ancienne base conservée dans "
                            f"{safety.file if safety else '—'}.")
             except backup.BackupError as exc:
@@ -267,30 +270,85 @@ with tab_settings:
             st.success("Paramètres enregistrés.")
 
     st.subheader("Sécurité")
-    with st.form("password", border=False, clear_on_submit=True):
-        c1, c2, c3 = st.columns(3)
-        current = c1.text_input("Mot de passe actuel", type="password", autocomplete="current-password")
-        new = c2.text_input("Nouveau mot de passe", type="password", autocomplete="new-password")
-        confirmation = c3.text_input("Confirmation", type="password", autocomplete="new-password")
-        if st.form_submit_button("Changer le mot de passe"):
-            try:
-                with context.session() as s:
-                    auth.change_password(s, current, new, confirmation)
-                st.success("Mot de passe modifié. Les téléphones connectés devront se reconnecter.")
-            except auth.AuthError as exc:
-                st.error(str(exc))
-    with context.session() as s:
-        phones = [(p.device or "Appareil inconnu", p.last_seen_at) for p in auth.active_sessions(s)]
+    with context.directory() as s:
+        account = auth.get_account(s, ws.account_id)
+        linked = {i.provider: i.email for i in account.identities}
+        username, has_password = account.username, account.password_hash is not None
+        phones = [(p.device or "Appareil inconnu", p.last_seen_at) for p in auth.active_sessions(s, account.id)]
+    theme.note(f"Compte « {account.name} »" + (f" · identifiant « {username} »" if username else "")
+               + ". Vos données sont chiffrées (AES-256, SQLCipher) avec une clé propre à ce compte.")
+
+    st.markdown("**Moyens de connexion**")
+    configured = oidc.providers(cfg)
+    to_link = []
+    for provider, label in auth.PROVIDERS.items():
+        c1, c2 = st.columns([3, 1], vertical_alignment="center")
+        if provider in linked:
+            c1.markdown(f"🟢 {label} — associé" + (f" ({linked[provider]})" if linked[provider] else ""))
+            if c2.button("Dissocier", key=f"unlink_{provider}", width="stretch"):
+                try:
+                    with context.directory() as s:
+                        auth.unlink_identity(s, auth.get_account(s, ws.account_id), provider)
+                    st.rerun()
+                except auth.AuthError as exc:
+                    st.error(str(exc))
+        else:
+            c1.markdown(f"⚪ {label} — non associé" + ("" if provider in configured else " (non configuré)"))
+            to_link.append(provider)
+    if to_link:
+        login.sso_buttons("Associer", link_tokens=login.link_tokens(ws.account_id), only=tuple(to_link))
+
+    if has_password:
+        with st.form("password", border=False, clear_on_submit=True):
+            c1, c2, c3 = st.columns(3)
+            current = c1.text_input("Mot de passe actuel", type="password", autocomplete="current-password")
+            new = c2.text_input("Nouveau mot de passe", type="password", autocomplete="new-password")
+            confirmation = c3.text_input("Confirmation", type="password", autocomplete="new-password")
+            if st.form_submit_button("Changer le mot de passe"):
+                try:
+                    with context.directory() as s:
+                        auth.change_password(s, auth.get_account(s, ws.account_id), current, new, confirmation)
+                    st.success("Mot de passe modifié. Les téléphones connectés devront se reconnecter.")
+                except auth.AuthError as exc:
+                    st.error(str(exc))
+    else:
+        with st.form("set_password", border=False, clear_on_submit=True):
+            st.caption("Ajoutez un identifiant et un mot de passe (secours si Google ou Apple est indisponible).")
+            c1, c2, c3 = st.columns(3)
+            new_username = c1.text_input("Identifiant", autocomplete="username")
+            new = c2.text_input("Mot de passe", type="password", autocomplete="new-password")
+            confirmation = c3.text_input("Confirmation", type="password", autocomplete="new-password")
+            if st.form_submit_button("Définir le mot de passe"):
+                try:
+                    with context.directory() as s:
+                        auth.set_password(s, auth.get_account(s, ws.account_id), new_username, new, confirmation)
+                    st.rerun()
+                except auth.AuthError as exc:
+                    st.error(str(exc))
+
     if phones:
         st.markdown(f"**{len(phones)} téléphone(s) connecté(s)**")
         for device, seen in phones:
             theme.note(f"{device} · dernière activité le {theme.day(seen)} (UTC)")
         if st.button("Déconnecter tous les téléphones", icon=":material/phonelink_erase:"):
-            with context.session() as s:
-                auth.revoke_all_sessions(s)
+            with context.directory() as s:
+                auth.revoke_all_sessions(s, ws.account_id)
             st.rerun()
     else:
         theme.note("Aucun téléphone connecté.")
+
+    st.subheader("Connexion Google et Apple")
+    origin = (st.context.url or "http://localhost:8501").split("/", 3)
+    desktop = "/".join(origin[:3])
+    st.dataframe(pd.DataFrame([{
+        "Fournisseur": label,
+        "État": "🟢 Configuré" if provider in configured else "⚪ Non configuré",
+        "Adresse de retour à déclarer (ordinateur)": connexion.redirect_uri(desktop, provider),
+        "Adresse de retour (téléphone)": connexion.redirect_uri("https://<adresse du téléphone>", provider),
+    } for provider, label in auth.PROVIDERS.items()]), hide_index=True, width="stretch")
+    theme.note("Identifiants à renseigner dans `config/secrets.toml` (sections `[google]` et `[apple]`, voir "
+               "`config/secrets.example.toml`). Apple exige une adresse HTTPS avec un nom de domaine. Ancora ne "
+               "reçoit jamais votre mot de passe Google ou Apple : seulement un identifiant de compte vérifié.")
 
     st.subheader("Sources de données")
     sources = pd.DataFrame([
@@ -308,8 +366,8 @@ with tab_settings:
 
     st.subheader("Stockage local")
     st.markdown(f"- Devise de consolidation : **{CONSOLIDATION_CURRENCY}**\n"
-                f"- Base de données : `{cfg.db_path}`\n"
-                f"- Sauvegardes : `{cfg.backup_dir}`\n"
+                f"- Base de données de votre compte (chiffrée) : `{ws.db_path}`\n"
+                f"- Sauvegardes (chiffrées) : `{ws.backup_dir}`\n"
                 f"- Journaux : `{cfg.log_dir}`")
 
     st.subheader("Version téléphone")

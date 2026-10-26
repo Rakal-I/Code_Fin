@@ -1,35 +1,22 @@
-"""Interface téléphone : API JSON."""
+"""Interface téléphone : API JSON, connexion, isolation des comptes, Google / Apple."""
 import time
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from fastapi.testclient import TestClient
 
-from app.config import settings
-from app.database.engine import dispose_engine, session_scope, upgrade_to_head
 from app.mobile import server
-from app.services import auth
-from tests.conftest import FakeConnector
+from app.services import auth, oidc, workspace
+from tests.conftest import PASSWORD, USER, FakeConnector, make_account
 from tests.test_ui import populate
-
-USER, PASSWORD = "proprietaire", "Patrimoine2026"
 
 
 @pytest.fixture
-def anonymous(tmp_path, monkeypatch):
-    """Client non connecté, sur une base remplie avec un compte configuré."""
-    db = tmp_path / "ancora.db"
-    monkeypatch.setenv("ANCORA_DB_PATH", str(db))
-    monkeypatch.setenv("ANCORA_BACKUP_DIR", str(tmp_path / "backups"))
-    monkeypatch.setenv("ANCORA_LOG_DIR", str(tmp_path / "logs"))
-    settings.get_config.cache_clear()
-    upgrade_to_head(db)
-    populate(db)
-    with session_scope(db) as s:
-        auth.create_account(s, USER, PASSWORD, PASSWORD)
+def anonymous(app_config):
+    """Client non connecté ; un compte rempli existe."""
+    populate(make_account(app_config))
     with TestClient(server.app) as test_client:
         yield test_client
-    settings.get_config.cache_clear()
-    dispose_engine(db)
 
 
 @pytest.fixture
@@ -45,7 +32,8 @@ def test_api_protegee_sans_connexion(anonymous):
                  "/api/refresh"):
         assert anonymous.get(path).status_code == 401, path
     status = anonymous.get("/api/auth/status").json()
-    assert status == {"configured": True, "authenticated": False, "username": None}
+    assert status == {"configured": True, "authenticated": False, "username": None,
+                      "providers": {"google": False, "apple": False}}
     assert anonymous.get("/").status_code == 200  # l'écran de connexion lui-même reste accessible
 
 
@@ -70,18 +58,21 @@ def test_blocage_apres_echecs(anonymous):
     assert locked.status_code == 429
 
 
-def test_aucun_compte_configure(tmp_path, monkeypatch):
-    db = tmp_path / "vide.db"
-    monkeypatch.setenv("ANCORA_DB_PATH", str(db))
-    monkeypatch.setenv("ANCORA_LOG_DIR", str(tmp_path / "logs"))
-    settings.get_config.cache_clear()
-    try:
-        with TestClient(server.app) as c:
-            assert c.get("/api/auth/status").json()["configured"] is False
-            assert c.get("/api/summary").status_code == 401
-    finally:
-        settings.get_config.cache_clear()
-        dispose_engine(db)
+def test_aucun_compte_configure(app_config):
+    with TestClient(server.app) as c:
+        assert c.get("/api/auth/status").json()["configured"] is False
+        assert c.get("/api/summary").status_code == 401
+
+
+def test_chaque_compte_ne_voit_que_ses_donnees(client, app_config):
+    make_account(app_config, username="conjoint", password="Conjoint2026")
+    assert client.get("/api/summary").json()["lines"] == 2
+    other = TestClient(server.app)
+    other.post("/api/auth/login", json={"username": "conjoint", "password": "Conjoint2026"},
+               headers={"X-Ancora": "1"})
+    data = other.get("/api/summary").json()
+    assert data["lines"] == 0 and data["positions"] == []
+    assert other.get("/api/auth/status").json()["username"] == "conjoint"
 
 
 def test_synthese(client):
@@ -139,3 +130,77 @@ def test_actualisation_en_arriere_plan(client, monkeypatch):
         time.sleep(0.1)
     assert state["running"] is False and state["finished_at"]
     assert any(i["price"] == pytest.approx(400.0) for i in client.get("/api/markets").json()["items"])
+
+
+# --------------------------------------------------------------------------
+# Continuer avec Google / Apple (fournisseur simulé)
+# --------------------------------------------------------------------------
+
+@pytest.fixture
+def google(monkeypatch):
+    """Fournisseur Google configuré ; l'échange du code renvoie l'identité « g-1 »."""
+    provider = oidc.Provider(name="google", label="Google", client_id="client-test",
+                             authorize_url="https://accounts.example/auth", token_url="https://accounts.example/token",
+                             jwks_url="https://accounts.example/jwks", issuers=("https://accounts.example",),
+                             scope="openid email profile", form_post=False, pkce=True, client_secret=lambda: "x")
+    monkeypatch.setattr(oidc, "providers", lambda _config: {"google": provider})
+    calls = []
+
+    def exchange(p, code, redirect_uri, verifier, nonce, apple_user=None):
+        calls.append((code, redirect_uri, verifier, nonce))
+        return oidc.Claims(subject="g-1", email="camille@exemple.fr", name="Camille")
+
+    monkeypatch.setattr(oidc, "exchange", exchange)
+    return calls
+
+
+def _start(c: TestClient, provider: str = "google") -> dict:
+    response = c.get(f"/connexion/{provider}", follow_redirects=False)
+    assert response.status_code == 303
+    return {k: v[0] for k, v in parse_qs(urlparse(response.headers["location"]).query).items()}
+
+
+def test_google_compte_associe(anonymous, app_config, google):
+    with workspace.directory(app_config) as d:
+        auth.link_identity(d, auth.find_by_username(d, USER), "google", "g-1", None)
+    params = _start(anonymous)
+    assert params["code_challenge_method"] == "S256" and params["redirect_uri"].endswith("/connexion/google/retour")
+    back = anonymous.get("/connexion/google/retour", params={"state": params["state"], "code": "abc"},
+                         follow_redirects=False)
+    assert back.status_code == 303 and back.headers["location"] == "/"
+    assert "ancora_session" in back.headers["set-cookie"]
+    assert anonymous.get("/api/summary").json()["lines"] == 2
+    code, _uri, verifier, nonce = google[0]
+    assert code == "abc" and nonce == params["nonce"] and verifier  # PKCE et nonce transmis à la vérification
+
+
+def test_google_sans_compte_sur_le_telephone(anonymous, google):
+    params = _start(anonymous)
+    back = anonymous.get("/connexion/google/retour", params={"state": params["state"], "code": "abc"},
+                         follow_redirects=False)
+    assert "erreur=inconnu" in back.headers["location"]
+    assert anonymous.get("/api/summary").status_code == 401
+
+
+def test_google_state_falsifie_ou_rejoue(anonymous, google):
+    params = _start(anonymous)
+    forged = anonymous.get("/connexion/google/retour", params={"state": "autre", "code": "abc"},
+                           follow_redirects=False)
+    assert "erreur=expire" in forged.headers["location"]
+    other_browser = TestClient(server.app)  # sans le cookie du navigateur qui a lancé la demande
+    stolen = other_browser.get("/connexion/google/retour", params={"state": params["state"], "code": "abc"},
+                               follow_redirects=False)
+    assert "erreur=expire" in stolen.headers["location"] and google == []
+
+
+def test_google_annule_par_l_utilisateur(anonymous, google):
+    params = _start(anonymous)
+    back = anonymous.get("/connexion/google/retour", params={"state": params["state"], "error": "access_denied"},
+                         follow_redirects=False)
+    assert "erreur=refus" in back.headers["location"] and google == []
+
+
+def test_fournisseur_non_configure(anonymous):
+    back = anonymous.get("/connexion/apple", follow_redirects=False)
+    assert "erreur=non-configure" in back.headers["location"]
+    assert anonymous.get("/connexion/facebook", follow_redirects=False).status_code == 404

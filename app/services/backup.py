@@ -1,5 +1,8 @@
 """Sauvegarde, restauration et vérification d'intégrité (cahier des charges §17).
 
+Une sauvegarde est chiffrée avec la même clé que la base du compte : sans la clé maître,
+le fichier est illisible.
+
 L'historique des sauvegardes est tenu dans ``manifest.json``, à côté des fichiers,
 pour survivre à une restauration de la base.
 """
@@ -8,12 +11,13 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import sqlite3
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 
-from app.database.engine import dispose_engine
+import sqlcipher3
+
+from app.database.engine import connect_raw, dispose_engine
 
 log = logging.getLogger(__name__)
 
@@ -65,7 +69,8 @@ def list_backups(backup_dir: Path) -> list[BackupEntry]:
     return sorted(_read_manifest(backup_dir), key=lambda e: e.created_at, reverse=True)
 
 
-def create_backup(db_path: Path, backup_dir: Path, kind: str = "manuelle", comment: str = "") -> BackupEntry:
+def create_backup(db_path: Path, backup_dir: Path, kind: str = "manuelle", comment: str = "",
+                  key: bytes | None = None) -> BackupEntry:
     """Copie cohérente de la base via l'API de sauvegarde SQLite (fonctionne base ouverte)."""
     if not db_path.exists():
         raise BackupError("Aucune base à sauvegarder.")
@@ -76,8 +81,8 @@ def create_backup(db_path: Path, backup_dir: Path, kind: str = "manuelle", comme
     while target.exists():
         target = backup_dir / f"ancora-{now:%Y%m%d-%H%M%S}-{suffix}.db"
         suffix += 1
-    source = sqlite3.connect(db_path)
-    destination = sqlite3.connect(target)
+    source = connect_raw(db_path, key)
+    destination = connect_raw(target, key)
     try:
         source.backup(destination)
         # Fichier autonome : pas de journal WAL à côté de la sauvegarde.
@@ -87,7 +92,7 @@ def create_backup(db_path: Path, backup_dir: Path, kind: str = "manuelle", comme
         source.close()
     entry = BackupEntry(file=target.name, created_at=now.isoformat(), sha256=_sha256(target),
                         size=target.stat().st_size, kind=kind, comment=comment)
-    ok, message = _check_database(target)
+    ok, message = _check_database(target, key)
     if not ok:
         target.unlink(missing_ok=True)
         raise BackupError(f"Sauvegarde invalide : {message}")
@@ -98,15 +103,15 @@ def create_backup(db_path: Path, backup_dir: Path, kind: str = "manuelle", comme
     return entry
 
 
-def _check_database(path: Path) -> tuple[bool, str]:
+def _check_database(path: Path, key: bytes | None = None) -> tuple[bool, str]:
     try:
-        connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        connection = connect_raw(path, key, readonly=True)
         try:
             result = connection.execute("PRAGMA integrity_check").fetchone()[0]
             tables = {r[0] for r in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         finally:
             connection.close()
-    except sqlite3.DatabaseError as exc:
+    except sqlcipher3.DatabaseError as exc:
         return False, f"fichier illisible ({exc})"
     if result != "ok":
         return False, f"contrôle SQLite en échec ({result})"
@@ -116,27 +121,27 @@ def _check_database(path: Path) -> tuple[bool, str]:
     return True, "intégrité vérifiée"
 
 
-def verify_backup(backup_dir: Path, entry: BackupEntry) -> tuple[bool, str]:
+def verify_backup(backup_dir: Path, entry: BackupEntry, key: bytes | None = None) -> tuple[bool, str]:
     """Empreinte SHA-256 identique à celle de la création + contrôle d'intégrité SQLite."""
     path = backup_dir / entry.file
     if not path.exists():
         return False, "Fichier de sauvegarde introuvable."
     if _sha256(path) != entry.sha256:
         return False, "Empreinte différente : le fichier a été modifié ou corrompu."
-    ok, message = _check_database(path)
+    ok, message = _check_database(path, key)
     return ok, message.capitalize() + "."
 
 
-def restore_backup(db_path: Path, backup_dir: Path, entry: BackupEntry) -> BackupEntry:
+def restore_backup(db_path: Path, backup_dir: Path, entry: BackupEntry, key: bytes | None = None) -> BackupEntry:
     """Restaure après vérification ; la base actuelle est d'abord sauvegardée."""
-    ok, message = verify_backup(backup_dir, entry)
+    ok, message = verify_backup(backup_dir, entry, key)
     if not ok:
         raise BackupError(f"Restauration annulée : {message}")
     safety = create_backup(db_path, backup_dir, kind="avant restauration",
-                           comment=f"Base remplacée par {entry.file}") if db_path.exists() else None
+                           comment=f"Base remplacée par {entry.file}", key=key) if db_path.exists() else None
     dispose_engine(db_path)
-    source = sqlite3.connect(f"file:{backup_dir / entry.file}?mode=ro", uri=True)
-    destination = sqlite3.connect(db_path)
+    source = connect_raw(backup_dir / entry.file, key, readonly=True)
+    destination = connect_raw(db_path, key)
     try:
         source.backup(destination)
     finally:

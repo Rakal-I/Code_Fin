@@ -2,8 +2,9 @@
 
 Lancement : python -m app.mobile   (http://127.0.0.1:8502)
 
-Elle lit la même base et applique les mêmes règles que l'interface ordinateur.
-La saisie et l'administration restent sur l'ordinateur.
+Elle lit les mêmes bases chiffrées et applique les mêmes règles que l'interface ordinateur :
+chaque session n'ouvre que la base du compte connecté. La saisie et l'administration restent
+sur l'ordinateur.
 """
 from __future__ import annotations
 
@@ -12,7 +13,7 @@ from collections import Counter
 from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime, timedelta
 
-from fastapi import FastAPI, Header, HTTPException, Request, Response
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -21,13 +22,14 @@ from sqlalchemy import select
 from app.bootstrap import bootstrap
 from app.config.settings import ROOT, get_config
 from app.connectors.registry import build_connectors
-from app.database.engine import session_scope
 from app.domain.quality import BADGES
 from app.models.entities import RefreshLog
 from app.models.enums import DataStatus, InstrumentType
-from app.services import auth, market_data, referential
+from app.services import auth, market_data, oidc, referential, workspace
 from app.services import portfolio as pf
+from app.services.workspace import Workspace
 from app.ui import views
+from app.web import connexion
 
 STATIC = ROOT / "app" / "mobile" / "static"
 
@@ -41,8 +43,9 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="Ancora mobile", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
 
-def _session():
-    return session_scope(get_config().db_path)
+def current_workspace(request: Request) -> Workspace:
+    """Base chiffrée du compte connecté (ouverte par le contrôle de session ci-dessous)."""
+    return request.state.workspace
 
 
 def _status(status: DataStatus) -> dict:
@@ -60,31 +63,33 @@ def _require_app_header(x_ancora: str | None) -> None:
 # Connexion : toute l'API est protégée, sauf ces routes
 # --------------------------------------------------------------------------
 
-COOKIE = "ancora_session"
+COOKIE = connexion.SESSION_COOKIE
 PUBLIC_API = {"/api/auth/status", "/api/auth/login", "/api/health"}
 
 
 @app.middleware("http")
 async def require_session(request: Request, call_next):
     if request.url.path.startswith("/api/") and request.url.path not in PUBLIC_API:
-        with _session() as s:
+        config = get_config()
+        with workspace.directory(config) as s:
             account = auth.resolve_session(s, request.cookies.get(COOKIE))
-        if account is None:
+            ws = workspace.open_workspace(config, account) if account else None
+        if ws is None:
             return JSONResponse({"detail": "Connexion requise."}, status_code=401)
+        request.state.workspace = ws
     return await call_next(request)
-
-
-def _is_https(request: Request) -> bool:
-    return request.url.scheme == "https" or request.headers.get("x-forwarded-proto", "").lower() == "https"
 
 
 @app.get("/api/auth/status")
 def auth_status(request: Request) -> dict:
-    with _session() as s:
-        configured = auth.account_exists(s)
+    config = get_config()
+    with workspace.directory(config) as s:
+        configured = auth.accounts_exist(s)
         account = auth.resolve_session(s, request.cookies.get(COOKIE)) if configured else None
-        return {"configured": configured, "authenticated": account is not None,
-                "username": account.username if account else None}
+        name = account.name if account else None
+    available = oidc.providers(config)
+    return {"configured": configured, "authenticated": account is not None, "username": name,
+            "providers": {p: p in available for p in auth.PROVIDERS}}
 
 
 class LoginIn(BaseModel):
@@ -96,24 +101,22 @@ class LoginIn(BaseModel):
 def auth_login(data: LoginIn, request: Request, response: Response,
                x_ancora: str | None = Header(default=None)) -> dict:
     _require_app_header(x_ancora)
-    with _session() as s:
+    with workspace.directory(get_config()) as s:
         result = auth.authenticate(s, data.username, data.password)
         if not result.ok:
             s.commit()  # le compteur d'échecs est enregistré
             raise HTTPException(status_code=429 if result.locked_until else 401, detail=result.message)
-        device = request.headers.get("user-agent", "")
-        label = "iPhone" if "iPhone" in device else "iPad" if "iPad" in device else "Navigateur"
-        token = auth.create_session(s, result.account_id, label)
-        username = auth.get_account(s).username
+        token = auth.create_session(s, result.account_id, connexion.device_label(request))
+        name = auth.get_account(s, result.account_id).name
     response.set_cookie(COOKIE, token, max_age=auth.SESSION_DAYS * 86400, httponly=True, samesite="strict",
-                        secure=_is_https(request), path="/")
-    return {"ok": True, "username": username}
+                        secure=connexion.is_https(request), path="/")
+    return {"ok": True, "username": name}
 
 
 @app.post("/api/auth/logout")
 def auth_logout(request: Request, response: Response, x_ancora: str | None = Header(default=None)) -> dict:
     _require_app_header(x_ancora)
-    with _session() as s:
+    with workspace.directory(get_config()) as s:
         auth.revoke_session(s, request.cookies.get(COOKIE))
     response.delete_cookie(COOKIE, path="/")
     return {"ok": True}
@@ -124,8 +127,8 @@ def auth_logout(request: Request, response: Response, x_ancora: str | None = Hea
 # --------------------------------------------------------------------------
 
 @app.get("/api/summary")
-def summary() -> dict:
-    with _session() as s:
+def summary(ws: Workspace = Depends(current_workspace)) -> dict:
+    with ws.session() as s:
         prefs = referential.get_preferences(s)
         views_all = pf.holdings(s, prefs, include_closed=True)
         totals = pf.summarize(views_all)
@@ -177,8 +180,8 @@ def _shares(values: dict[str, float]) -> list[dict]:
 # --------------------------------------------------------------------------
 
 @app.get("/api/markets")
-def markets(scope: str = "watchlist") -> dict:
-    with _session() as s:
+def markets(scope: str = "watchlist", ws: Workspace = Depends(current_workspace)) -> dict:
+    with ws.session() as s:
         prefs = referential.get_preferences(s)
         instruments = referential.list_instruments(s)
         if scope == "held":
@@ -208,8 +211,8 @@ def markets(scope: str = "watchlist") -> dict:
 
 
 @app.get("/api/instruments/{instrument_id}")
-def instrument(instrument_id: int) -> dict:
-    with _session() as s:
+def instrument(instrument_id: int, ws: Workspace = Depends(current_workspace)) -> dict:
+    with ws.session() as s:
         prefs = referential.get_preferences(s)
         try:
             inst = referential.get_instrument(s, instrument_id)
@@ -255,8 +258,8 @@ def instrument(instrument_id: int) -> dict:
 # --------------------------------------------------------------------------
 
 @app.get("/api/income")
-def income() -> dict:
-    with _session() as s:
+def income(ws: Workspace = Depends(current_workspace)) -> dict:
+    with ws.session() as s:
         rows = pf.incomes(s)
     today = datetime.now(UTC).date()
     months = []
@@ -286,8 +289,8 @@ def income() -> dict:
 
 
 @app.get("/api/quality")
-def quality() -> dict:
-    with _session() as s:
+def quality(ws: Workspace = Depends(current_workspace)) -> dict:
+    with ws.session() as s:
         prefs = referential.get_preferences(s)
         counts: Counter = Counter()
         for inst in referential.list_instruments(s):
@@ -310,9 +313,10 @@ class PreferencesIn(BaseModel):
 
 
 @app.put("/api/preferences")
-def set_preferences(data: PreferencesIn, x_ancora: str | None = Header(default=None)) -> dict:
+def set_preferences(data: PreferencesIn, x_ancora: str | None = Header(default=None),
+                    ws: Workspace = Depends(current_workspace)) -> dict:
     _require_app_header(x_ancora)
-    with _session() as s:
+    with ws.session() as s:
         current = referential.get_preferences(s)
         referential.save_preferences(s, referential.Preferences(
             mask_amounts=data.mask_amounts, price_stale_days=current.price_stale_days,
@@ -321,38 +325,43 @@ def set_preferences(data: PreferencesIn, x_ancora: str | None = Header(default=N
 
 
 _refresh_lock = threading.Lock()
-_refresh_state: dict = {"running": False, "done": 0, "total": 0, "current": None, "errors": [], "finished_at": None}
+_refresh_states: dict[str, dict] = {}  # par compte : chacun actualise ses propres instruments
 
 
-def _run_refresh() -> None:
+def _idle_state() -> dict:
+    return {"running": False, "done": 0, "total": 0, "current": None, "errors": [], "finished_at": None}
+
+
+def _run_refresh(ws: Workspace, state: dict) -> None:
     def progress(index: int, total: int, name: str) -> None:
-        _refresh_state.update(done=index - 1, total=total, current=name)
+        state.update(done=index - 1, total=total, current=name)
 
     try:
-        with _session() as s:
+        with ws.session() as s:
             results = market_data.refresh_all(s, build_connectors(get_config()), progress=progress)
-        _refresh_state["errors"] = [f"{r.instrument} : {' '.join(r.messages)}" for r in results if not r.ok]
+        state["errors"] = [f"{r.instrument} : {' '.join(r.messages)}" for r in results if not r.ok]
     except Exception as exc:  # l'état d'erreur reste consultable par l'application
-        _refresh_state["errors"] = [f"Actualisation interrompue : {type(exc).__name__}"]
+        state["errors"] = [f"Actualisation interrompue : {type(exc).__name__}"]
     finally:
-        _refresh_state.update(running=False, current=None, done=_refresh_state["total"],
-                              finished_at=datetime.now(UTC).replace(microsecond=0).isoformat())
+        state.update(running=False, current=None, done=state["total"],
+                     finished_at=datetime.now(UTC).replace(microsecond=0).isoformat())
 
 
 @app.post("/api/refresh")
-def start_refresh(x_ancora: str | None = Header(default=None)) -> dict:
+def start_refresh(x_ancora: str | None = Header(default=None), ws: Workspace = Depends(current_workspace)) -> dict:
     """Lance l'actualisation en arrière-plan : l'application reste utilisable pendant ce temps."""
     _require_app_header(x_ancora)
     with _refresh_lock:
-        if not _refresh_state["running"]:
-            _refresh_state.update(running=True, done=0, total=0, current=None, errors=[], finished_at=None)
-            threading.Thread(target=_run_refresh, name="ancora-refresh", daemon=True).start()
-    return dict(_refresh_state)
+        state = _refresh_states.setdefault(ws.uuid, _idle_state())
+        if not state["running"]:
+            state.update(running=True, done=0, total=0, current=None, errors=[], finished_at=None)
+            threading.Thread(target=_run_refresh, args=(ws, state), name="ancora-refresh", daemon=True).start()
+        return dict(state)
 
 
 @app.get("/api/refresh")
-def refresh_status() -> dict:
-    return dict(_refresh_state)
+def refresh_status(ws: Workspace = Depends(current_workspace)) -> dict:
+    return dict(_refresh_states.get(ws.uuid) or _idle_state())
 
 
 @app.get("/api/health")
@@ -360,4 +369,6 @@ def health() -> dict:
     return {"ok": True, "today": date.today().isoformat()}
 
 
+# Continuer avec Google / Apple (avant les fichiers statiques, servis à la racine).
+app.router.routes.extend(connexion.routes("mobile"))
 app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")
