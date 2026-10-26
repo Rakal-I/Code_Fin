@@ -240,7 +240,7 @@ référence (CAC 40, Euro Stoxx 50, S&P 500, Nasdaq, MSCI World, MSCI EM).
 GitHub Pages ne peut pas faire tourner Ancora (il faut un serveur Python). **GitHub Codespaces** le peut :
 un mini-serveur privé, lancé depuis le dépôt, avec une adresse HTTPS réservée à votre compte GitHub.
 
-1. Sur la page du dépôt : **Code › Codespaces › Create codespace on main** (60 h gratuites par mois
+1. Sur la page du dépôt : **Code › Codespaces › Create codespace on <branche>** (avant la fusion de la PR : `claude/readme-auto-update-investments-qdwrbw`, ensuite `main`) (60 h gratuites par mois
    avec un compte personnel).
 2. Attendez le démarrage (2 à 3 minutes la première fois) : Ancora s'ouvre dans le navigateur.
    Sinon, onglet **Ports** : port 8501 = ordinateur, port 8502 = téléphone.
