@@ -496,7 +496,7 @@ Code_Fin/
 |---|---|---|
 | Python | 74 | 7331 |
 | Autres | 20 | 64 |
-| Markdown | 3 | 853 |
+| Markdown | 5 | 1609 |
 | TOML | 3 | 58 |
 | Texte | 2 | 23 |
 | YAML | 2 | 71 |
@@ -506,7 +506,7 @@ Code_Fin/
 | JSON | 1 | 12 |
 | JavaScript | 1 | 669 |
 | Shell | 1 | 17 |
-| **Total** | **110** | **9524** |
+| **Total** | **112** | **10280** |
 
 **Tests automatisés détectés :** 104
 
