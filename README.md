@@ -25,7 +25,7 @@ Deux interfaces partagent la même base et les mêmes règles de calcul :
 > ou de vente.
 
 <!-- AUTO:META:START -->
-> 🔄 **Dernière mise à jour :** 26/10/2026 17:16 (heure de Paris) · commit `8c2cdf3` · 17 commits au total
+> 🔄 **Dernière mise à jour :** 26/10/2026 17:16 (heure de Paris) · commit `9cba7e9` · 18 commits au total
 <!-- AUTO:META:END -->
 
 ---
@@ -496,7 +496,7 @@ Code_Fin/
 |---|---|---|
 | Python | 74 | 7331 |
 | Autres | 20 | 64 |
-| Markdown | 5 | 1609 |
+| Markdown | 3 | 853 |
 | TOML | 3 | 58 |
 | Texte | 2 | 23 |
 | YAML | 2 | 71 |
@@ -506,7 +506,7 @@ Code_Fin/
 | JSON | 1 | 12 |
 | JavaScript | 1 | 669 |
 | Shell | 1 | 17 |
-| **Total** | **112** | **10280** |
+| **Total** | **110** | **9524** |
 
 **Tests automatisés détectés :** 104
 
@@ -533,6 +533,7 @@ Code_Fin/
 <!-- AUTO:COMMITS:START -->
 | Commit | Date | Auteur | Message |
 |---|---|---|---|
+| `9cba7e9` | 26/10/2026 | Claude | Merge branch 'main' of https://github.com/Rakal-I/Code_Fin |
 | `8c2cdf3` | 26/10/2026 | Claude | Ajoute le logo partout : favicons, icônes iPhone/Android, aperçu de partage |
 | `082b557` | 26/10/2026 | Claude | Corrige l'écran blanc dans Codespaces |
 | `264338c` | 26/10/2026 | McOfirty | Merge pull request #1 from Rakal-I/claude/readme-auto-update-investments-qdwrbw |
@@ -542,7 +543,6 @@ Code_Fin/
 | `f887633` | 26/10/2026 | Claude | Ajoute une connexion obligatoire sur l'ordinateur et le téléphone |
 | `b0679e5` | 26/10/2026 | Claude | Passe les deux interfaces au style « Liquid Glass » et aligne les graphiques sur le logo |
 | `646afaf` | 26/10/2026 | Claude | Ajoute la version téléphone d'Ancora (web-app au style iOS) |
-| `5846c7e` | 26/10/2026 | Claude | Crée l'application Ancora (version 1 du cahier des charges) |
 <!-- AUTO:COMMITS:END -->
 
 ---
