@@ -88,7 +88,7 @@ function showSetupHint() {
   lock();
   view.innerHTML = `<div class="login"><div class="login-card glass">${APP_ICON}
     <h1>Bienvenue</h1><p class="lead">Créez d'abord votre compte dans Ancora sur l'ordinateur
-    (avec Apple, Google ou un mot de passe), puis revenez ici pour vous connecter.</p>
+    (identifiant et mot de passe), puis revenez ici pour vous connecter.</p>
     <button class="primary" id="retry">J'ai créé mon compte</button></div></div>`;
   $("retry").addEventListener("click", boot);
 }
@@ -146,6 +146,7 @@ async function offerPasskey() {
     setTimeout(() => sheet.remove(), 300);
   };
   $("sheet-no").addEventListener("click", close);
+  sheet.addEventListener("click", (event) => { if (event.target === sheet) close(); });
   $("sheet-yes").addEventListener("click", async () => { if (await enablePasskey()) close(); });
 }
 
@@ -193,8 +194,9 @@ function showLogin(message = "") {
 function unlock() {
   document.body.classList.remove("locked");
   lastHash = null;
+  visited.length = 0;
   route();
-  requestAnimationFrame(placeLens);
+  requestAnimationFrame(() => placeLens(false));
 }
 
 async function logout() {
@@ -305,7 +307,13 @@ function lineChart(points) {
 }
 
 // ------------------------------------------------------------------ Navigation
-let navigatedInApp = false;
+/* Comme une app iOS : changer d'onglet ne crée pas d'historique, ouvrir une fiche si ; la fiche
+   reste rattachée à l'onglet d'où elle a été ouverte, et le retour retrouve la position dans la liste. */
+const TAB_ROOTS = { patrimoine: "#/", marches: "#/marches", revenus: "#/revenus", reglages: "#/reglages" };
+const scrollPositions = new Map();   // position de défilement par écran
+const visited = [];                  // pile des écrans de la session (pour reconnaître un retour)
+let currentTab = "patrimoine";
+let routeSeq = 0;                    // seul le dernier écran demandé peut s'afficher
 
 function setNav(title, back) {
   $("small-title").textContent = title;
@@ -314,38 +322,53 @@ function setNav(title, back) {
     : "";
   if (back) {
     $("back-btn").addEventListener("click", () => {
-      if (navigatedInApp) history.back();
-      else location.hash = back.href;
+      if (visited.length > 1) history.back();
+      else location.replace(back.href);   // fiche ouverte par un lien direct : retour à la liste de l'onglet
     });
   }
 }
 
-function placeLens() {
+function placeLens(animate = true) {
   const active = tabbar.querySelector("a.active");
   const lens = $("tab-lens");
-  if (!active) return;
+  if (!active || !active.offsetWidth) return;
+  if (!animate) lens.style.transition = "none";
   lens.style.width = `${active.offsetWidth}px`;
   lens.style.transform = `translateX(${active.offsetLeft}px)`;
+  if (!animate) requestAnimationFrame(() => { lens.style.transition = ""; });
 }
+
+function setCompact(compact) {
+  if (compact === tabbar.classList.contains("compact")) return;
+  tabbar.classList.toggle("compact", compact);
+  placeLens();
+}
+// La largeur des onglets s'anime : la lentille se recale à chaque fin de transition.
+tabbar.addEventListener("transitionend", (event) => { if (event.target.tagName === "A") placeLens(); });
+
+// Onglets : pas d'historique ; toucher l'onglet actif remonte en haut (ou revient à sa liste).
+tabbar.querySelectorAll("a").forEach((link) => link.addEventListener("click", (event) => {
+  event.preventDefault();
+  const target = TAB_ROOTS[link.dataset.tab];
+  if ((location.hash || "#/") === target) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+  if (link.dataset.tab === currentTab) scrollPositions.delete(target);
+  location.replace(target);
+}));
 
 let lastY = 0;
 window.addEventListener("scroll", () => {
   const y = window.scrollY;
   navbar.classList.toggle("scrolled", y > 44);
-  const compact = y > 120 && y > lastY;
-  if (compact !== tabbar.classList.contains("compact") && Math.abs(y - lastY) > 4) {
-    tabbar.classList.toggle("compact", compact);
-    setTimeout(placeLens, 0);
-    setTimeout(placeLens, 380);
-  }
+  if (Math.abs(y - lastY) > 4) setCompact(y > 120 && y > lastY);
   lastY = y;
 }, { passive: true });
-window.addEventListener("resize", placeLens);
+window.addEventListener("resize", () => placeLens(false));
 
 // ------------------------------------------------------------------ Patrimoine
-async function renderPatrimoine() {
+async function renderPatrimoine(seq = routeSeq) {
   setNav("Patrimoine");
   const d = await api("/api/summary");
+  if (!isCurrent(seq)) return;
   state.mask = d.mask_amounts;
   if (!d.lines) {
     view.innerHTML = largeTitle("Patrimoine") + emptyState("Aucune position",
@@ -372,7 +395,7 @@ async function renderPatrimoine() {
       <div class="caption">Valorisation totale</div>
       <div class="value num">${money(d.value_eur, "EUR", 0)}</div>
       <div class="delta"><span class="${tone(d.gain_eur)}">${money(d.gain_eur, "EUR", 0, { signed: true })} (${pct(d.gain_pct)})</span>
-        <span class="muted">plus-value latente</span></div>
+        <span class="muted">plus&#8209;value latente</span></div>
       <div class="chips">
         <span class="chip">Réalisé <b class="${tone(d.realized_eur)}">${money(d.realized_eur, "EUR", 0, { signed: true })}</b></span>
         <span class="chip">Revenus 12 mois <b>${money(d.income_12m_eur, "EUR", 0)}</b></span>
@@ -421,7 +444,7 @@ function renderRingCard(card, shares, totalValue) {
 // ------------------------------------------------------------------ Marchés
 const PERF_OPTIONS = [["1 sem.", "1 S"], ["1 mois", "1 M"], ["6 mois", "6 M"], ["1 an", "1 A"], ["5 ans", "5 A"]];
 
-async function renderMarkets() {
+async function renderMarkets(seq = routeSeq) {
   setNav("Marchés");
   view.innerHTML = `
     ${largeTitle("Marchés")}
@@ -441,12 +464,18 @@ async function renderMarkets() {
         <a class="row" href="#/instrument/${item.id}">
           <div class="main"><div class="title">${esc(item.name)}</div>
             <div class="sub">${esc(item.ticker)}${item.status.code !== "REELLE" ? ` · ${esc(item.status.emoji)} ${esc(item.status.label)}` : ""}</div></div>
-          <div class="end"><div class="title">${item.price === null ? esc(item.status.label) : money(item.price, item.currency, 2, { maskable: false })}</div></div>
-          <span class="pill ${pillClass}">${pct(change)}</span>
+          <div class="end"><div class="title">${item.price === null ? esc(item.status.label) : money(item.price, item.currency, 2, { maskable: false })}</div>
+            <span class="pill ${pillClass}">${pct(change)}</span></div>
         </a>`;
     }).join("")}</div>` : emptyState("Aucun résultat", needle ? "Aucun instrument ne correspond à cette recherche." : "Ajoutez des instruments depuis Ancora sur ordinateur.");
   };
-  const load = async () => { items = (await api(`/api/markets?scope=${state.marketScope}`)).items; draw(); };
+  const load = async () => {
+    const scope = state.marketScope;
+    const data = await api(`/api/markets?scope=${scope}`);
+    if (!isCurrent(seq) || scope !== state.marketScope) return;   // écran quitté ou filtre changé entre-temps
+    items = data.items;
+    draw();
+  };
   bindSegmented("scope", (value) => { state.marketScope = value; load(); });
   bindSegmented("period", (value) => { state.perfPeriod = value; draw(); });
   $("search").addEventListener("input", (event) => { state.query = event.target.value; draw(); });
@@ -456,10 +485,12 @@ async function renderMarkets() {
 // ------------------------------------------------------------------ Fiche instrument
 const CHART_PERIODS = [["1 mois", "1 M", 31], ["6 mois", "6 M", 183], ["1 an", "1 A", 366], ["5 ans", "5 A", 1827], ["10 ans", "10 A", 3653], ["max", "Max", null]];
 
-async function renderInstrument(id) {
-  setNav("", { label: "Retour", href: "#/marches" });
+async function renderInstrument(id, seq = routeSeq) {
+  const back = { label: "Retour", href: TAB_ROOTS[currentTab] };
+  setNav("", back);
   const d = await api(`/api/instruments/${id}`);
-  setNav(d.name, { label: "Retour", href: "#/marches" });
+  if (!isCurrent(seq)) return;
+  setNav(d.name, back);
   const priceText = d.price.value === null ? d.price.status.label : money(d.price.value, d.price.currency, 2, { maskable: false });
   const meta = `${d.price.status.emoji} ${d.price.status.label}${d.price.date ? ` · ${frDate(d.price.date)}` : ""}${d.price.source ? ` · ${d.price.source}` : ""}`;
 
@@ -485,8 +516,8 @@ async function renderInstrument(id) {
       ${segmented("chart", CHART_PERIODS.map((p) => [p[0], p[1]]), state.chartPeriod)}
     </div>
     ${sectionHeader("Performances")}
-    <div class="grid">${Object.entries(d.perf).map(([label, value]) =>
-      `<div class="cell"><div class="k">${esc(label)}</div><div class="v ${tone(value)}">${pct(value)}</div></div>`).join("")}</div>
+    <div class="grid" style="--rows:${Math.ceil(Object.keys(d.perf).length / 3)}">${Object.entries(d.perf).map(([label, value], i) =>
+      `<div class="cell${i >= (Math.ceil(Object.keys(d.perf).length / 3) - 1) * 3 ? " last-row" : ""}"><div class="k">${esc(label)}</div><div class="v ${tone(value)}">${pct(value)}</div></div>`).join("")}</div>
     ${sections}
     ${d.not_applicable.length ? sectionFooter(`Non applicable à ce type d'instrument : ${d.not_applicable.join(", ")}.`) : ""}
     ${sectionHeader("Identité")}
@@ -548,17 +579,17 @@ function attachScrub(points, currency, priceText, metaHtml) {
 }
 
 // ------------------------------------------------------------------ Revenus
-async function renderIncome() {
+async function renderIncome(seq = routeSeq) {
   setNav("Revenus");
   const d = await api("/api/income");
+  if (!isCurrent(seq)) return;
   const max = Math.max(...d.months.map((m) => m.value), 1);
-  const slot = 100 / 12, barWidth = slot * 0.46;
   let selected = d.months.map((m) => m.value > 0).lastIndexOf(true);
-  const bars = d.months.map((m, i) => {
-    const h = m.value > 0 ? Math.max((m.value / max) * 140, barWidth) : 0;
-    return `<rect class="bar" data-i="${i}" x="${(i * slot + (slot - barWidth) / 2).toFixed(2)}" y="${(150 - h).toFixed(1)}" width="${barWidth.toFixed(2)}" height="${h.toFixed(1)}" rx="${(barWidth / 2).toFixed(2)}" fill="var(--accent)"/>
-      <rect data-i="${i}" class="hit" x="${(i * slot).toFixed(2)}" y="0" width="${slot.toFixed(2)}" height="150" fill="transparent"/>`;
-  }).join("");
+  // Capsules : hauteur proportionnelle, jamais plus basse que sa largeur (le haut reste arrondi).
+  const bars = d.months.map((m, i) => `
+    <button class="col" data-i="${i}" aria-label="${MONTH_NAMES[Number(m.month.slice(5)) - 1]} : ${money(m.value, "EUR", 2)}">
+      ${m.value > 0 ? `<span class="bar" style="height:${((m.value / max) * 100).toFixed(1)}%"></span>` : ""}
+    </button>`).join("");
   const items = d.items.map((r) => `
     <div class="row"><div class="main"><div class="title">${esc(r.instrument)}</div>
         <div class="sub">${esc(r.type)} · ${frDate(r.date)} · ${esc(r.envelope)}</div></div>
@@ -574,28 +605,29 @@ async function renderIncome() {
     ${d.missing_12m ? `<div class="notice">${d.missing_12m} revenu(s) sans taux de change ne sont pas inclus.</div>` : ""}
     <div class="bars">
       <div class="readout" id="readout"></div>
-      <svg viewBox="0 0 100 150" preserveAspectRatio="none" aria-label="Revenus par mois">${bars}</svg>
+      <div class="cols" role="group" aria-label="Revenus par mois">${bars}</div>
       <div class="labels">${d.months.map((m) => `<span>${MONTHS[Number(m.month.slice(5)) - 1]}</span>`).join("")}</div></div>
     ${sectionHeader("Derniers revenus")}
     ${d.items.length ? `<div class="list">${items}</div>` : emptyState("Aucun revenu", "Les dividendes saisis sur ordinateur apparaîtront ici.")}
   `;
   const select = (index) => {
     selected = index;
-    view.querySelectorAll(".bars .bar").forEach((bar) => bar.setAttribute("fill-opacity", Number(bar.dataset.i) === selected ? 1 : 0.34));
+    view.querySelectorAll(".bars .col").forEach((col) => col.classList.toggle("on", Number(col.dataset.i) === selected));
     const m = d.months[selected];
     if (!m) { $("readout").textContent = "Touchez un mois pour voir son montant."; return; }
     const [y, mo] = m.month.split("-");
     $("readout").innerHTML = `${MONTH_NAMES[Number(mo) - 1]} ${y} · <b>${money(m.value, "EUR", 2)}</b>`;
   };
-  view.querySelectorAll(".bars .hit").forEach((hit) => hit.addEventListener("click", () => select(Number(hit.dataset.i))));
+  view.querySelectorAll(".bars .col").forEach((col) => col.addEventListener("click", () => select(Number(col.dataset.i))));
   select(selected);
 }
 
 // ------------------------------------------------------------------ Réglages
-async function renderSettings() {
+async function renderSettings(seq = routeSeq) {
   setNav("Réglages");
   const [summary, quality, refresh, auth] = await Promise.all([
     api("/api/summary"), api("/api/quality"), api("/api/refresh"), api("/api/auth/status")]);
+  if (!isCurrent(seq)) return;
   state.mask = summary.mask_amounts;
   const counts = quality.counts.filter((c) => c.count > 0);
   view.innerHTML = `
@@ -629,7 +661,7 @@ async function renderSettings() {
     </div>
     ${sectionFooter("Pour changer de mot de passe, retirer un appareil Face ID ou déconnecter vos téléphones : Ancora sur ordinateur, Administration › Paramètres.")}
     ${sectionHeader("À propos")}
-    <div class="list"><div class="row"><div class="main"><div class="title">Ancora</div></div><div class="detail">Version téléphone 1.3</div></div></div>
+    <div class="list"><div class="row"><div class="main"><div class="title">Ancora</div></div><div class="detail">Version téléphone 1.4</div></div></div>
     ${sectionFooter("La saisie des opérations et l'administration se font dans Ancora sur ordinateur. Ancora n'est pas un outil de conseil en investissement.")}
   `;
   $("mask-toggle").addEventListener("change", async (event) => {
@@ -714,35 +746,57 @@ window.addEventListener("touchend", () => {
 
 // ------------------------------------------------------------------ Routeur
 const ROUTES = [
-  [/^#?\/?$/, () => renderPatrimoine(), "patrimoine"],
-  [/^#\/marches$/, () => renderMarkets(), "marches"],
-  [/^#\/instrument\/(\d+)$/, (m) => renderInstrument(m[1]), "marches"],
-  [/^#\/revenus$/, () => renderIncome(), "revenus"],
-  [/^#\/reglages$/, () => renderSettings(), "reglages"],
+  [/^#?\/?$/, (m, seq) => renderPatrimoine(seq), "patrimoine"],
+  [/^#\/marches$/, (m, seq) => renderMarkets(seq), "marches"],
+  [/^#\/instrument\/(\d+)$/, (m, seq) => renderInstrument(m[1], seq), null],   // reste dans l'onglet d'origine
+  [/^#\/revenus$/, (m, seq) => renderIncome(seq), "revenus"],
+  [/^#\/reglages$/, (m, seq) => renderSettings(seq), "reglages"],
 ];
 
 let lastHash = null;
+const isCurrent = (seq) => seq === routeSeq;
+
 async function route(keepPosition = false) {
   if (document.body.classList.contains("locked")) return;
   const hash = location.hash || "#/";
   const [pattern, render, tab] = ROUTES.find(([p]) => p.test(hash)) || ROUTES[0];
-  tabbar.querySelectorAll("a").forEach((a) => a.classList.toggle("active", a.dataset.tab === tab));
-  placeLens();
   const changed = hash !== lastHash;
-  if (changed && !keepPosition) { window.scrollTo(0, 0); view.innerHTML = skeleton(); tabbar.classList.remove("compact"); }
+  const seq = ++routeSeq;
+
+  // Retour (bouton ou geste) : l'écran précédent de la pile. Sinon, nouvel écran.
+  let restore = null;
+  if (changed) {
+    if (lastHash) scrollPositions.set(lastHash, window.scrollY);
+    const back = visited.length > 1 && visited[visited.length - 2] === hash;
+    if (back) { visited.pop(); restore = scrollPositions.get(hash) ?? 0; }
+    else if (tab) { visited.length = 0; visited.push(hash); }     // changement d'onglet : nouvelle pile
+    else visited.push(hash);
+  }
+  if (tab) currentTab = tab;
+  else if (lastHash === null) currentTab = "marches";   // fiche ouverte par un lien direct
+  tabbar.querySelectorAll("a").forEach((a) => a.classList.toggle("active", a.dataset.tab === currentTab));
+  if (changed && !keepPosition) {
+    tabbar.classList.remove("compact");
+    window.scrollTo(0, 0);
+    view.innerHTML = skeleton();
+  }
+  placeLens(lastHash !== null);
   lastHash = hash;
+
   try {
-    await render(hash.match(pattern));
+    await render(hash.match(pattern), seq);
+    if (!isCurrent(seq)) return;
     if (changed) {
       view.classList.remove("view-enter", "view-push");
       void view.offsetWidth; // relance l'animation
-      view.classList.add(hash.startsWith("#/instrument") ? "view-push" : "view-enter");
+      view.classList.add(restore !== null ? "view-enter" : tab ? "view-enter" : "view-push");
+      if (restore) requestAnimationFrame(() => window.scrollTo(0, restore));
     }
   } catch (error) {
-    if (error.status === 401) return; // l'écran de connexion est déjà affiché
+    if (!isCurrent(seq) || error.status === 401) return; // écran remplacé, ou connexion affichée
     view.innerHTML = emptyState("Ancora est injoignable", "Vérifiez que l'ordinateur qui héberge Ancora est allumé, puis réessayez.");
   }
 }
 
-window.addEventListener("hashchange", () => { navigatedInApp = true; route(); });
+window.addEventListener("hashchange", () => route());
 boot();
