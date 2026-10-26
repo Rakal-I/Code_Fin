@@ -25,7 +25,7 @@ Deux interfaces partagent la même base et les mêmes règles de calcul :
 > ou de vente.
 
 <!-- AUTO:META:START -->
-> 🔄 **Dernière mise à jour :** 26/10/2026 13:14 (heure de Paris) · commit `f887633` · 11 commits au total
+> 🔄 **Dernière mise à jour :** 26/10/2026 13:41 (heure de Paris) · commit `44300b3` · 12 commits au total
 <!-- AUTO:META:END -->
 
 ---
@@ -201,16 +201,16 @@ pendant qu'une actualisation écrit.
 <!-- AUTO:ARCHITECTURE:START -->
 | Dossier | Rôle | État | Fichiers Python |
 |---|---|---|---|
-| `app/` | Paquet de l'application (point d'entrée : streamlit_app.py) | ✅ Présent | 12 |
+| `app/` | Paquet de l'application (point d'entrée : streamlit_app.py) | ✅ Présent | 14 |
 | `app/pages/` | Pages et tableaux de bord Streamlit | ✅ Présent | 8 |
 | `app/domain/` | Règles métier : PRU, valorisation, plus-values, devises | ✅ Présent | 5 |
-| `app/services/` | Orchestration : actualisation, sauvegarde, comptes, chiffrement, connexion | ✅ Présent | 7 |
+| `app/services/` | Orchestration : actualisation, sauvegarde, comptes, chiffrement, connexion | ✅ Présent | 10 |
 | `app/connectors/` | Fournisseurs de données : yfinance, Finnhub, SEC EDGAR, saisie manuelle | ✅ Présent | 6 |
-| `app/models/` | Modèles SQLAlchemy et schémas Pydantic | ✅ Présent | 4 |
+| `app/models/` | Modèles SQLAlchemy et schémas Pydantic | ✅ Présent | 5 |
 | `app/database/` | Accès SQLite chiffré (SQLCipher) et gestion des sessions | ✅ Présent | 2 |
 | `config/`, `app/config/` | Paramètres de l'application (clés API et identifiants Google / Apple hors dépôt) | ✅ Présent | 2 |
-| `tests/` | Tests automatisés | ✅ Présent | 8 |
-| `migrations/` | Migrations de schéma Alembic | ✅ Présent | 3 |
+| `tests/` | Tests automatisés | ✅ Présent | 10 |
+| `migrations/` | Migrations de schéma Alembic | ✅ Présent | 4 |
 <!-- AUTO:ARCHITECTURE:END -->
 
 ---
@@ -381,6 +381,7 @@ Code_Fin/
 │   │   └── server.py
 │   ├── models/
 │   │   ├── __init__.py
+│   │   ├── directory.py
 │   │   ├── entities.py
 │   │   ├── enums.py
 │   │   └── schemas.py
@@ -399,8 +400,11 @@ Code_Fin/
 │   │   ├── backup.py
 │   │   ├── logging_setup.py
 │   │   ├── market_data.py
+│   │   ├── oidc.py
 │   │   ├── portfolio.py
-│   │   └── referential.py
+│   │   ├── referential.py
+│   │   ├── vault.py
+│   │   └── workspace.py
 │   ├── ui/
 │   │   ├── __init__.py
 │   │   ├── context.py
@@ -409,6 +413,9 @@ Code_Fin/
 │   │   ├── login.py
 │   │   ├── theme.py
 │   │   └── views.py
+│   ├── web/
+│   │   ├── __init__.py
+│   │   └── connexion.py
 │   ├── __init__.py
 │   └── bootstrap.py
 ├── assets/
@@ -424,10 +431,12 @@ Code_Fin/
 ├── migrations/
 │   ├── versions/
 │   │   ├── 0001_schema_initial.py
-│   │   └── 0002_authentification.py
+│   │   ├── 0002_authentification.py
+│   │   └── 0003_comptes_dans_l_annuaire.py
 │   ├── env.py
 │   └── script.py.mako
 ├── scripts/
+│   ├── cle_de_secours.py
 │   ├── demo_data.py
 │   ├── generate_logo.py
 │   ├── reset_password.py
@@ -436,8 +445,10 @@ Code_Fin/
 │   ├── __init__.py
 │   ├── conftest.py
 │   ├── test_auth.py
+│   ├── test_chiffrement.py
 │   ├── test_domain.py
 │   ├── test_mobile.py
+│   ├── test_oidc.py
 │   ├── test_recette.py
 │   ├── test_services.py
 │   └── test_ui.py
@@ -458,7 +469,7 @@ Code_Fin/
 <!-- AUTO:STATS:START -->
 | Langage | Fichiers | Lignes (hors vides) |
 |---|---|---|
-| Python | 63 | 6366 |
+| Python | 73 | 7269 |
 | Autres | 10 | 61 |
 | Markdown | 3 | 833 |
 | TOML | 3 | 58 |
@@ -468,9 +479,9 @@ Code_Fin/
 | HTML | 1 | 58 |
 | INI | 1 | 29 |
 | JavaScript | 1 | 669 |
-| **Total** | **87** | **8503** |
+| **Total** | **97** | **9406** |
 
-**Tests automatisés détectés :** 89
+**Tests automatisés détectés :** 104
 
 **Stack cible** (dépendances lues dans `requirements*.txt` / `pyproject.toml`) :
 
@@ -495,6 +506,7 @@ Code_Fin/
 <!-- AUTO:COMMITS:START -->
 | Commit | Date | Auteur | Message |
 |---|---|---|---|
+| `44300b3` | 26/10/2026 | Claude | Ajoute la connexion Google et Apple, et chiffre les données de chaque compte |
 | `f887633` | 26/10/2026 | Claude | Ajoute une connexion obligatoire sur l'ordinateur et le téléphone |
 | `b0679e5` | 26/10/2026 | Claude | Passe les deux interfaces au style « Liquid Glass » et aligne les graphiques sur le logo |
 | `646afaf` | 26/10/2026 | Claude | Ajoute la version téléphone d'Ancora (web-app au style iOS) |
@@ -504,7 +516,6 @@ Code_Fin/
 | `37b926f` | 26/10/2026 | Claude | Renomme l'application en « Ancora » avec un logo en forme d'ancre |
 | `0a47799` | 26/10/2026 | Claude | Refait le logo Vigie dans un style minimaliste façon Apple |
 | `6be385f` | 26/10/2026 | Claude | Nomme l'application « Vigie » et ajoute son logo |
-| `9057d72` | 26/10/2026 | Claude | Ignore les commits du bot dans l'en-tête du README |
 <!-- AUTO:COMMITS:END -->
 
 ---
